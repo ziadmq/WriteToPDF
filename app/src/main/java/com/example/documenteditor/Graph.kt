@@ -1,0 +1,21 @@
+package com.example.documenteditor
+
+import android.content.Context
+import androidx.room.Room
+import androidx.room.RoomDatabase
+import com.example.documenteditor.data.DocumentDatabase
+import com.example.documenteditor.data.DocumentRepository
+
+object Graph {
+    private lateinit var database: DocumentDatabase
+
+    val documentRepository by lazy {
+        DocumentRepository(documentDao = database.documentDao())
+    }
+
+    fun provide (context: Context){
+        database = Room.databaseBuilder(context, DocumentDatabase::class.java, "documents.db")
+            .fallbackToDestructiveMigration()
+            .build()
+    }
+}
