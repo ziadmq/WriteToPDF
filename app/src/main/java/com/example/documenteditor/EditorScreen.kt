@@ -117,7 +117,7 @@ fun EditorScreen(
     val currentParagraphStyle = richTextState.currentParagraphStyle
     val isBold = currentSpanStyle.fontWeight == FontWeight.Bold
     val isItalic = currentSpanStyle.fontStyle == FontStyle.Italic
-    val isUnderlineActive = currentSpanStyle.textDecoration == TextDecoration.Underline
+//    val isUnderlineActive = currentSpanStyle.textDecoration == TextDecoration.Underline
     val isLeftAlignActive = currentParagraphStyle.textAlign == TextAlign.Left
     val isCenterAlignActive = currentParagraphStyle.textAlign == TextAlign.Center
     val isRightAlignActive = currentParagraphStyle.textAlign == TextAlign.Right
@@ -154,10 +154,6 @@ fun EditorScreen(
                                 fontStyle = when (spanStyle.fontStyle) {
                                     "Italic" -> FontStyle.Italic
                                     else -> FontStyle.Normal
-                                },
-                                textDecoration = when (spanStyle.textDecoration) {
-                                    "Underline" -> TextDecoration.Underline
-                                    else -> TextDecoration.None
                                 },
                                 fontSize = when {
                                     spanStyle.fontSize == null -> TextUnit.Unspecified
@@ -326,22 +322,6 @@ fun EditorScreen(
                         Icon(
                             painter = painterResource(id = R.drawable.italic_solid),
                             contentDescription = "Italic",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(onClick = {
-                        richTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
-                    },
-                        modifier = Modifier
-                            .background(
-                                color = if (isUnderlineActive) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.underline_solid),
-                            contentDescription = "Underline",
                             modifier = Modifier.size(24.dp)
                         )
                     }
