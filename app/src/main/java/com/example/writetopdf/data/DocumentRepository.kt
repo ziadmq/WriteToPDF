@@ -1,6 +1,6 @@
-package com.example.documenteditor.data
+package com.example.writetopdf.data
 
-import com.example.documenteditor.domain.models.Document
+import com.example.writetopdf.domain.models.Document
 import kotlinx.coroutines.flow.Flow
 
 class DocumentRepository(private val documentDao: DocumentDAO) {

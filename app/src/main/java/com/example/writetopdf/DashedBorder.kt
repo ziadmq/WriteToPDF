@@ -1,4 +1,4 @@
-package com.example.documenteditor
+package com.example.writetopdf
 
 import android.annotation.SuppressLint
 import androidx.compose.ui.Modifier

@@ -1,11 +1,10 @@
-package com.example.documenteditor.data
+package com.example.writetopdf.data
 
 import androidx.room.Database
-import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
-import com.example.documenteditor.domain.Converters
-import com.example.documenteditor.domain.models.Document
+import com.example.writetopdf.domain.Converters
+import com.example.writetopdf.domain.models.Document
 
 @Database(
     entities = [Document::class],

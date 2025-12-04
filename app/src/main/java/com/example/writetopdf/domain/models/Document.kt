@@ -1,11 +1,11 @@
-package com.example.documenteditor.domain.models
+package com.example.writetopdf.domain.models
 
 import android.os.Parcelable
 import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import kotlinx.parcelize.Parcelize
-import java.time.LocalDate
+
 @Parcelize
 @Entity(tableName = "documents")
 data class Document(

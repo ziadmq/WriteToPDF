@@ -1,4 +1,4 @@
-package com.example.documenteditor.ui.theme
+package com.example.writetopdf.ui.theme
 
 import androidx.compose.ui.graphics.Color
 

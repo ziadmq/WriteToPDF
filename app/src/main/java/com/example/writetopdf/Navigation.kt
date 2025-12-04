@@ -1,4 +1,4 @@
-package com.example.documenteditor
+package com.example.writetopdf
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -8,7 +8,7 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
-import com.example.documenteditor.domain.models.Document
+import com.example.writetopdf.domain.models.Document
 
 
 @RequiresApi(Build.VERSION_CODES.O)

@@ -1,4 +1,4 @@
-package com.example.documenteditor.domain.models
+package com.example.writetopdf.domain.models
 
 import kotlinx.serialization.Serializable
 

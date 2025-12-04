@@ -1,4 +1,4 @@
-package com.example.documenteditor
+package com.example.writetopdf
 
 import android.content.pm.PackageManager
 import android.os.Build
@@ -8,9 +8,8 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.example.documenteditor.ui.theme.DocumentEditorTheme
+import com.example.writetopdf.ui.theme.DocumentEditorTheme
 
 class MainActivity : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)

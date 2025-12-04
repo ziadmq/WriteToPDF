@@ -1,7 +1,7 @@
-package com.example.documenteditor.domain
+package com.example.writetopdf.domain
 
 import androidx.room.TypeConverter
-import com.example.documenteditor.domain.models.FormattingData
+import com.example.writetopdf.domain.models.FormattingData
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 

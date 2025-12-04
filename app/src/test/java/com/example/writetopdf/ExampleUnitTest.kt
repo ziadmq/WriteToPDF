@@ -1,4 +1,4 @@
-package com.example.documenteditor
+package com.example.writetopdf
 
 import org.junit.Test
 

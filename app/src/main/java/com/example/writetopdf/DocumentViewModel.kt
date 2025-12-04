@@ -1,9 +1,9 @@
-package com.example.documenteditor
+package com.example.writetopdf
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.documenteditor.data.DocumentRepository
-import com.example.documenteditor.domain.models.Document
+import com.example.writetopdf.data.DocumentRepository
+import com.example.writetopdf.domain.models.Document
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 

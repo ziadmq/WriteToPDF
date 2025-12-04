@@ -1,4 +1,4 @@
-package com.example.documenteditor
+package com.example.writetopdf
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -9,9 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -51,7 +49,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.documenteditor.domain.models.Document
+import com.example.writetopdf.domain.models.Document
 import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -305,20 +303,22 @@ fun DocumentItem(
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 @Preview
 fun PreviewDocumentItem() {
-    val sampleDocument = Document(
-        id = 1,
-        title = "Sample Document",
-        content = "This is a preview of the document content.",
-        lastUpdated = "2023-09-25"
-    )
-
-    DocumentItem(
-        document = sampleDocument,
-        navigateToEditor = { /* No-op for preview */ },
-        deleteDocument = { /* No-op for preview */ },
-        updateDocument = {}
-    )
+    HomeScreen(viewModel = DocumentViewModel(), navigateToEditor = {})
+//    val sampleDocument = Document(
+//        id = 1,
+//        title = "Sample Document",
+//        content = "This is a preview of the document content.",
+//        lastUpdated = "2023-09-25"
+//    )
+//
+//    DocumentItem(
+//        document = sampleDocument,
+//        navigateToEditor = { /* No-op for preview */ },
+//        deleteDocument = { /* No-op for preview */ },
+//        updateDocument = {}
+//    )
 }

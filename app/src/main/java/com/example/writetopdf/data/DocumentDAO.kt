@@ -1,10 +1,10 @@
-package com.example.documenteditor.data
+package com.example.writetopdf.data
 
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
 import androidx.room.Update
-import com.example.documenteditor.domain.models.Document
+import com.example.writetopdf.domain.models.Document
 import kotlinx.coroutines.flow.Flow
 
 @Dao
