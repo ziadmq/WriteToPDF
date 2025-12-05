@@ -8,7 +8,7 @@ import com.example.writetopdf.domain.models.Document
 
 @Database(
     entities = [Document::class],
-    version = 2,
+    version = 3, // <--- ✅ MAKE SURE THIS IS 3
     exportSchema = false
 )
 @TypeConverters(Converters::class)

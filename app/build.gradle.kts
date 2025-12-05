@@ -47,6 +47,13 @@ android {
 
 
 dependencies {
+    implementation("androidx.compose.material:material-icons-extended:1.5.4")
+    // iText Core
+    implementation("com.itextpdf:itext7-core:7.2.3")
+
+    // Arabic Support (Typography / pdfCalligraph)
+    // This will now work because we added the repository in Step 1
+    implementation("com.itextpdf:typography:3.0.0")
 
     // ----- Rich Text Editor (اللي كان شغال عندك من قبل عبر libs.richeditor.compose) -----
     implementation(libs.richeditor.compose)

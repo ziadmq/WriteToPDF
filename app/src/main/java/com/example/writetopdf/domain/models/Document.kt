@@ -10,19 +10,18 @@ import kotlinx.parcelize.Parcelize
 @Entity(tableName = "documents")
 data class Document(
     @PrimaryKey(autoGenerate = true)
-    val id: Int,
+    val id: Int = 0,
 
     @ColumnInfo(name = "title")
     val title: String,
 
-    @ColumnInfo(name = "content")
-    var content: String,
+    // ✅ CHANGED: This must be a List, not a String
+    @ColumnInfo(name = "pages")
+    val pages: List<String> = listOf(""),
 
     @ColumnInfo(name = "last_updated")
     val lastUpdated: String,
 
     @ColumnInfo(name = "formatting")
-    var formatting: String? = null
-
+    val formatting: List<String> = listOf()
 ) : Parcelable
-

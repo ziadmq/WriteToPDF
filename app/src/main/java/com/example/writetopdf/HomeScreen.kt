@@ -43,12 +43,12 @@ fun HomeScreen(
     navigateToEditor: (document: Document) -> Unit = {}
 ) {
     val allDocuments = viewModel.allDocuments.collectAsState(initial = emptyList()).value
-    var searchQuery by remember { mutableStateOf("") } // ✅ Search State
+    var searchQuery by remember { mutableStateOf("") }
 
-    // ✅ Filter Logic
+    // ✅ FIXED: Filter Logic now checks 'doc.pages' instead of 'doc.content'
     val filteredDocuments = allDocuments.filter { doc ->
         doc.title.contains(searchQuery, ignoreCase = true) ||
-                doc.content.contains(searchQuery, ignoreCase = true)
+                doc.pages.any { page -> page.contains(searchQuery, ignoreCase = true) }
     }
 
     Scaffold(
@@ -61,10 +61,11 @@ fun HomeScreen(
                     .clip(CircleShape)
                     .background(GalaxyGradient)
                     .clickable {
+                        // ✅ FIXED: Initialize new document with 'pages' list
                         val document = Document(
                             id = 0,
                             title = "Untitled Design",
-                            content = "",
+                            pages = listOf(""),
                             lastUpdated = LocalDate.now().toString()
                         )
                         navigateToEditor(document)
@@ -103,7 +104,7 @@ fun HomeScreen(
                     }
                 }
 
-                // ✅ Search Bar UI
+                // Search Bar UI
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -223,8 +224,12 @@ fun GalaxyDocumentItem(
                 .background(GalaxySurface)
                 .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
         ) {
-            // Remove Image tags for preview text to keep it clean
-            val cleanText = document.content.replace(Regex("\\[IMAGE:.*?\\]"), "[Image]")
+            // ✅ FIXED: Preview logic to use pages instead of content
+            val firstPageContent = document.pages.firstOrNull() ?: ""
+            // Simple cleanup to remove HTML tags for the preview
+            val cleanText = firstPageContent
+                .replace(Regex("<[^>]*>"), "") // Remove HTML
+                .replace(Regex("\\[IMAGE:.*?\\]"), "[Image]")
 
             Text(
                 text = cleanText.ifEmpty { "Empty Canvas" },

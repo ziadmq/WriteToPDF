@@ -10,7 +10,6 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.compose.composable
 import com.example.writetopdf.domain.models.Document
 
-
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun Navigation(navController: NavHostController = rememberNavController()){
@@ -26,7 +25,10 @@ fun Navigation(navController: NavHostController = rememberNavController()){
             }
         }
         composable("editor"){
-            val document = navController.previousBackStackEntry?.savedStateHandle?.get<Document>("document")?: Document(0, "", "", "")
+            // ✅ FIXED: We now provide a listOf("") for the pages argument
+            val document = navController.previousBackStackEntry?.savedStateHandle?.get<Document>("document")
+                ?: Document(0, "Untitled", listOf(""), "")
+
             EditorScreen(viewModel, document){
                 navController.navigate("home")
             }

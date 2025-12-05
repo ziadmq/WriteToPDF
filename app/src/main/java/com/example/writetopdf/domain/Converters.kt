@@ -6,18 +6,33 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 
 class Converters {
+    private val json = Json { ignoreUnknownKeys = true }
 
-    // The Kotlin function fromFormattingData is used to serialize a nullable FormattingData object into a JSON string.
+    // ✅ 1. Converters for the Pages (List<String>)
     @TypeConverter
-    fun fromFormattingData(value: FormattingData?): String {
-        return Json.encodeToString(value ?: FormattingData(emptyList(), emptyList()))
+    fun fromStringList(value: List<String>?): String {
+        return json.encodeToString(value ?: emptyList())
     }
 
-    //   It is responsible for converting a String (JSON-formatted) back into a FormattingData object.
+    @TypeConverter
+    fun toStringList(value: String): List<String> {
+        return try {
+            json.decodeFromString(value)
+        } catch (e: Exception) {
+            emptyList()
+        }
+    }
+
+    // ✅ 2. Converters for Formatting (FormattingData)
+    @TypeConverter
+    fun fromFormattingData(value: FormattingData?): String {
+        return json.encodeToString(value ?: FormattingData(emptyList(), emptyList()))
+    }
+
     @TypeConverter
     fun toFormattingData(value: String): FormattingData {
         return try {
-            Json.decodeFromString(value)
+            json.decodeFromString(value)
         } catch (e: Exception) {
             FormattingData(emptyList(), emptyList())
         }
