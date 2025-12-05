@@ -48,9 +48,6 @@ import com.example.writetopdf.domain.models.FormattingData
 import com.example.writetopdf.domain.models.ParagraphStyleData
 import com.example.writetopdf.domain.models.SpanStyleData
 import com.example.writetopdf.ui.theme.*
-import com.itextpdf.io.font.PdfEncodings
-import com.itextpdf.kernel.font.PdfFont
-import com.itextpdf.kernel.font.PdfFontFactory
 import com.itextpdf.io.image.ImageDataFactory
 import com.itextpdf.kernel.colors.DeviceRgb
 import com.itextpdf.kernel.pdf.PdfDocument
@@ -58,12 +55,8 @@ import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.element.AreaBreak
 import com.itextpdf.layout.element.Image
 import com.itextpdf.layout.element.Paragraph
-import com.itextpdf.layout.element.Text
 import com.itextpdf.layout.properties.AreaBreakType
-import com.itextpdf.layout.properties.BaseDirection
 import com.itextpdf.layout.properties.TextAlignment
-import com.itextpdf.layout.font.FontProvider
-import com.itextpdf.layout.font.FontSet
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import kotlinx.serialization.encodeToString
@@ -83,7 +76,7 @@ fun EditorScreen(
     val context = LocalContext.current
     val titleState = remember { mutableStateOf(document.title) }
 
-    // -- MULTI PAGE SETUP --
+    // ---- PAGES STATE ----
     val pageStates = remember {
         mutableStateListOf<RichTextState>().apply {
             if (document.pages.isNotEmpty()) {
@@ -104,7 +97,6 @@ fun EditorScreen(
     val pagerState = rememberPagerState(pageCount = { pageStates.size })
     val currentRichTextState = pageStates[pagerState.currentPage]
 
-    // Tools
     var showColorPicker by remember { mutableStateOf(false) }
     var showSizePicker by remember { mutableStateOf(false) }
     val isSaveDialogOpen = remember { mutableStateOf(false) }
@@ -132,34 +124,65 @@ fun EditorScreen(
                             value = titleState.value,
                             onValueChange = { titleState.value = it },
                             modifier = Modifier.height(50.dp),
-                            textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = GalaxyTextPrimary),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedBorderColor = Color.Transparent, unfocusedBorderColor = Color.Transparent,
-                                cursorColor = GalaxyAccentTeal, focusedTextColor = GalaxyTextPrimary, unfocusedTextColor = GalaxyTextPrimary
+                            textStyle = LocalTextStyle.current.copy(
+                                fontSize = 18.sp,
+                                color = GalaxyTextPrimary
                             ),
-                            placeholder = { androidx.compose.material3.Text("Untitled", color = GalaxyTextSecondary) }
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = Color.Transparent,
+                                unfocusedBorderColor = Color.Transparent,
+                                cursorColor = GalaxyAccentTeal,
+                                focusedTextColor = GalaxyTextPrimary,
+                                unfocusedTextColor = GalaxyTextPrimary
+                            ),
+                            placeholder = {
+                                Text(
+                                    "Untitled",
+                                    color = GalaxyTextSecondary
+                                )
+                            }
                         )
-                        androidx.compose.material3.Text("Page ${pagerState.currentPage + 1} of ${pageStates.size}", fontSize = 12.sp, color = GalaxyTextSecondary)
+                        Text(
+                            "Page ${pagerState.currentPage + 1} of ${pageStates.size}",
+                            fontSize = 12.sp,
+                            color = GalaxyTextSecondary
+                        )
                     }
                 },
                 navigationIcon = {
                     IconButton(onClick = {
                         handleSave(document.id, titleState.value, pageStates, viewModel)
                         navigateToHome()
-                    }) { Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GalaxyTextPrimary) }
+                    }) {
+                        Icon(
+                            Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = GalaxyTextPrimary
+                        )
+                    }
                 },
                 actions = {
                     IconButton(onClick = { isSaveDialogOpen.value = true }) {
-                        Icon(Icons.Default.Download, contentDescription = "Export PDF", tint = GalaxyAccentTeal)
+                        Icon(
+                            Icons.Default.Download,
+                            contentDescription = "Export PDF",
+                            tint = GalaxyAccentTeal
+                        )
                     }
                     IconButton(onClick = {
                         handleSave(document.id, titleState.value, pageStates, viewModel)
                         Toast.makeText(context, "Saved!", Toast.LENGTH_SHORT).show()
                     }) {
-                        Icon(Icons.Default.Save, contentDescription = "Save", tint = GalaxyAccentPurple)
+                        Icon(
+                            Icons.Default.Save,
+                            contentDescription = "Save",
+                            tint = GalaxyAccentPurple
+                        )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = GalaxyBackground)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = GalaxyBackground
+                )
             )
         },
         bottomBar = {
@@ -178,36 +201,86 @@ fun EditorScreen(
                 }
 
                 Row(
-                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(8.dp),
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     IconButton(onClick = { pageStates.add(RichTextState()) }) {
-                        Icon(Icons.Default.PostAdd, contentDescription = "New Page", tint = GalaxyAccentTeal)
+                        Icon(
+                            Icons.Default.PostAdd,
+                            contentDescription = "New Page",
+                            tint = GalaxyAccentTeal
+                        )
                     }
                     IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
-                        Icon(Icons.Default.Image, contentDescription = "Add Image", tint = GalaxyAccentTeal)
+                        Icon(
+                            Icons.Default.Image,
+                            contentDescription = "Add Image",
+                            tint = GalaxyAccentTeal
+                        )
                     }
 
-                    Divider(modifier = Modifier.height(24.dp).width(1.dp), color = GalaxyTextSecondary)
+                    Divider(
+                        modifier = Modifier
+                            .height(24.dp)
+                            .width(1.dp),
+                        color = GalaxyTextSecondary
+                    )
 
-                    ToolBtn(isActive = currentRichTextState.currentSpanStyle.fontWeight == FontWeight.Bold, icon = Icons.Default.FormatBold) {
-                        currentRichTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    ToolBtn(
+                        isActive = currentRichTextState.currentSpanStyle.fontWeight == FontWeight.Bold,
+                        icon = Icons.Default.FormatBold
+                    ) {
+                        currentRichTextState.toggleSpanStyle(
+                            SpanStyle(fontWeight = FontWeight.Bold)
+                        )
                     }
-                    ToolBtn(isActive = currentRichTextState.currentSpanStyle.fontStyle == FontStyle.Italic, icon = Icons.Default.FormatItalic) {
-                        currentRichTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    ToolBtn(
+                        isActive = currentRichTextState.currentSpanStyle.fontStyle == FontStyle.Italic,
+                        icon = Icons.Default.FormatItalic
+                    ) {
+                        currentRichTextState.toggleSpanStyle(
+                            SpanStyle(fontStyle = FontStyle.Italic)
+                        )
                     }
-                    ToolBtn(isActive = currentRichTextState.currentSpanStyle.textDecoration == TextDecoration.Underline, icon = Icons.Default.FormatUnderlined) {
-                        currentRichTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+                    ToolBtn(
+                        isActive = currentRichTextState.currentSpanStyle.textDecoration == TextDecoration.Underline,
+                        icon = Icons.Default.FormatUnderlined
+                    ) {
+                        currentRichTextState.toggleSpanStyle(
+                            SpanStyle(textDecoration = TextDecoration.Underline)
+                        )
                     }
 
-                    Divider(modifier = Modifier.height(24.dp).width(1.dp), color = GalaxyTextSecondary)
+                    Divider(
+                        modifier = Modifier
+                            .height(24.dp)
+                            .width(1.dp),
+                        color = GalaxyTextSecondary
+                    )
 
-                    IconButton(onClick = { showColorPicker = !showColorPicker; showSizePicker = false }) {
-                        Icon(Icons.Default.Palette, contentDescription = "Color", tint = if (showColorPicker) GalaxyAccentTeal else GalaxyTextPrimary)
+                    IconButton(onClick = {
+                        showColorPicker = !showColorPicker
+                        showSizePicker = false
+                    }) {
+                        Icon(
+                            Icons.Default.Palette,
+                            contentDescription = "Color",
+                            tint = if (showColorPicker) GalaxyAccentTeal else GalaxyTextPrimary
+                        )
                     }
-                    IconButton(onClick = { showSizePicker = !showSizePicker; showColorPicker = false }) {
-                        Icon(Icons.Filled.FormatSize, contentDescription = "Size", tint = if (showSizePicker) GalaxyAccentTeal else GalaxyTextPrimary)
+                    IconButton(onClick = {
+                        showSizePicker = !showSizePicker
+                        showColorPicker = false
+                    }) {
+                        Icon(
+                            Icons.Filled.FormatSize,
+                            contentDescription = "Size",
+                            tint = if (showSizePicker) GalaxyAccentTeal else GalaxyTextPrimary
+                        )
                     }
                 }
             }
@@ -216,21 +289,36 @@ fun EditorScreen(
         if (isSaveDialogOpen.value) {
             AlertDialog(
                 onDismissRequest = { isSaveDialogOpen.value = false },
-                title = { androidx.compose.material3.Text("Export PDF") },
-                text = { androidx.compose.material3.Text("Save to Downloads?") },
+                title = { Text("Export PDF") },
+                text = { Text("Save to Downloads?") },
                 confirmButton = {
                     Button(onClick = {
                         exportToPdf(context, titleState.value, pageStates)
                         isSaveDialogOpen.value = false
-                    }) { androidx.compose.material3.Text("Export") }
+                    }) { Text("Export") }
                 },
-                dismissButton = { TextButton(onClick = { isSaveDialogOpen.value = false }) { androidx.compose.material3.Text("Cancel") } }
+                dismissButton = {
+                    TextButton(onClick = { isSaveDialogOpen.value = false }) {
+                        Text("Cancel")
+                    }
+                }
             )
         }
 
-        Box(modifier = Modifier.padding(paddingValues).fillMaxSize().background(GalaxyBackground)) {
-            HorizontalPager(state = pagerState, modifier = Modifier.fillMaxSize()) { pageIndex ->
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.TopCenter) {
+        Box(
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .background(GalaxyBackground)
+        ) {
+            HorizontalPager(
+                state = pagerState,
+                modifier = Modifier.fillMaxSize()
+            ) { pageIndex ->
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.TopCenter
+                ) {
                     Surface(
                         modifier = Modifier
                             .padding(16.dp)
@@ -243,55 +331,90 @@ fun EditorScreen(
                     ) {
                         RichTextEditor(
                             state = pageStates[pageIndex],
-                            modifier = Modifier.fillMaxSize().padding(24.dp),
-                            placeholder = { androidx.compose.material3.Text("Page ${pageIndex + 1}...", color = Color.Gray) }
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .padding(24.dp),
+                            placeholder = {
+                                Text(
+                                    "Page ${pageIndex + 1}...",
+                                    color = Color.Gray
+                                )
+                            }
                         )
                     }
                 }
             }
-            androidx.compose.material3.Text(
-                "${pagerState.currentPage + 1} / ${pageStates.size}",
-                modifier = Modifier.align(Alignment.BottomCenter).padding(16.dp).background(Color.Black.copy(alpha=0.5f), CircleShape).padding(horizontal = 12.dp, vertical = 4.dp),
-                color = Color.White
-            )
         }
     }
 }
 
-// --- HELPER FUNCTIONS ---
+// ---------- SAVE DOCUMENT (مع حماية من الكراش) ----------
 
-fun handleSave(docId: Int, title: String, pageStates: List<RichTextState>, viewModel: DocumentViewModel) {
+fun handleSave(
+    docId: Int,
+    title: String,
+    pageStates: List<RichTextState>,
+    viewModel: DocumentViewModel
+) {
     val json = Json { ignoreUnknownKeys = true }
-    val pagesHtml = pageStates.map { it.toHtml() }
+
+    val pagesHtml = pageStates.map { state ->
+        try {
+            state.toHtml()
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
+    // لو صار أي مشاكل في الفورماتينغ ما نخلي التطبيق يكرش
     val formattingJsonList = pageStates.map { state ->
-        val data = FormattingData(
-            spanStyles = state.annotatedString.spanStyles.map { style ->
-                SpanStyleData(
-                    start = style.start, end = style.end,
-                    fontWeight = if (style.item.fontWeight == FontWeight.Bold) "Bold" else null,
-                    fontStyle = if (style.item.fontStyle == FontStyle.Italic) "Italic" else null,
-                    textDecoration = if (style.item.textDecoration == TextDecoration.Underline) "Underline" else null,
-                    fontSize = style.item.fontSize?.value,
-                    color = style.item.color.takeIf { it != Color.Unspecified }?.toArgb()
-                )
-            },
-            paragraphStyles = state.annotatedString.paragraphStyles.map { style ->
-                ParagraphStyleData(start = style.start, end = style.end, textAlign = style.item.textAlign.toString())
-            }
-        )
-        json.encodeToString(data)
+        try {
+            val data = FormattingData(
+                spanStyles = state.annotatedString.spanStyles.map { style ->
+                    SpanStyleData(
+                        start = style.start,
+                        end = style.end,
+                        fontWeight = if (style.item.fontWeight == FontWeight.Bold) "Bold" else null,
+                        fontStyle = if (style.item.fontStyle == FontStyle.Italic) "Italic" else null,
+                        textDecoration = if (style.item.textDecoration == TextDecoration.Underline) "Underline" else null,
+                        fontSize = if (style.item.fontSize != TextUnit.Unspecified)
+                            style.item.fontSize.value
+                        else null,
+                        color = style.item.color
+                            .takeIf { it != Color.Unspecified }
+                            ?.toArgb()
+                    )
+                },
+                paragraphStyles = state.annotatedString.paragraphStyles.map { style ->
+                    ParagraphStyleData(
+                        start = style.start,
+                        end = style.end,
+                        textAlign = style.item.textAlign?.toString() ?: "Left"
+                    )
+                }
+            )
+            json.encodeToString(data)
+        } catch (e: Exception) {
+            ""
+        }
     }
 
     val newDoc = Document(
         id = docId,
-        title = title,
+        title = title.ifBlank { "Untitled" },
         pages = pagesHtml,
         formatting = formattingJsonList,
         lastUpdated = java.time.LocalDate.now().toString()
     )
 
-    if (docId == 0) viewModel.addDocument(newDoc) else viewModel.updateDocument(newDoc)
+    if (docId == 0) {
+        viewModel.addDocument(newDoc)
+    } else {
+        viewModel.updateDocument(newDoc)
+    }
 }
+
+// ---------- COPY IMAGE TO INTERNAL STORAGE ----------
 
 fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
     return try {
@@ -299,184 +422,258 @@ fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
         val fileName = "img_${System.currentTimeMillis()}.jpg"
         val file = File(context.filesDir, fileName)
         val outputStream = FileOutputStream(file)
+
         inputStream.copyTo(outputStream)
         inputStream.close()
         outputStream.close()
+
         file.absolutePath
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         null
     }
 }
 
-// ✅ FIXED: PDF Export with ARABIC + COLORS + STYLES
 fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextState>) {
     try {
-        val finalFileName = "$fileName.pdf"
-        val outputStream: OutputStream?
+        val finalName = if (fileName.isBlank()) "Document" else fileName
+        val outputName = "$finalName.pdf"
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            val contentValues = ContentValues().apply {
-                put(MediaStore.MediaColumns.DISPLAY_NAME, finalFileName)
-                put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+        val outputStream: OutputStream? =
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val cv = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, outputName)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
+                }
+                val uri = context.contentResolver.insert(
+                    MediaStore.Files.getContentUri("external"),
+                    cv
+                )
+                uri?.let { context.contentResolver.openOutputStream(it) }
+            } else {
+                val file = File(
+                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
+                    outputName
+                )
+                FileOutputStream(file)
             }
-            val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), contentValues)
-            outputStream = uri?.let { context.contentResolver.openOutputStream(it) }
-        } else {
-            val docsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-            if (!docsDir.exists()) docsDir.mkdirs()
-            val file = File(docsDir, finalFileName)
-            outputStream = FileOutputStream(file)
+
+        if (outputStream == null) {
+            Toast.makeText(context, "Failed to open file", Toast.LENGTH_LONG).show()
+            return
         }
 
-        if (outputStream != null) {
-            val pdfWriter = PdfWriter(outputStream)
-            val pdfDocument = PdfDocument(pdfWriter)
-            val document = com.itextpdf.layout.Document(pdfDocument)
+        val writer = PdfWriter(outputStream)
+        val pdf = PdfDocument(writer)
+        val doc = com.itextpdf.layout.Document(pdf)
 
-            // --- 1. SETUP FONTS (ARABIC) ---
-            val fontProvider = FontProvider()
-            val fontSet = FontSet()
+        // ---------- FOR EACH PAGE ----------
+        pageStates.forEachIndexed { pageIndex, state ->
 
-            // Attempt to load Arabic Font from Assets
-            try {
-                val assets = context.assets
-                val fontStream = assets.open("arabic_font.ttf") // Ensure this file exists in assets!
-                val fontBytes = fontStream.readBytes()
-                fontStream.close()
-                // IDENTITY_H is required for Arabic
-                val arabicFont = PdfFontFactory.createFont(fontBytes, PdfEncodings.IDENTITY_H, PdfFontFactory.EmbeddingStrategy.FORCE_EMBEDDED)
-                fontProvider.addFont(arabicFont.fontProgram)
-                document.setFontProvider(fontProvider)
-                document.setFont(arabicFont)
-                document.setBaseDirection(BaseDirection.RIGHT_TO_LEFT) // Critical for Arabic
-            } catch (e: Exception) {
-                // Font not found - will use default (Arabic might be disconnected)
-            }
+            if (pageIndex > 0) doc.add(AreaBreak(AreaBreakType.NEXT_PAGE))
 
-            // --- 2. BUILD PDF CONTENT ---
-            pageStates.forEachIndexed { index, state ->
-                if (index > 0) document.add(AreaBreak(AreaBreakType.NEXT_PAGE))
+            val annotated = state.annotatedString
+            val fullText = annotated.text
+            val spans = annotated.spanStyles
 
-                val annotatedString = state.annotatedString
-                val fullText = annotatedString.text
+            // نستخدم نفس نظام [IMAGE:path] اللي انت عامله
+            val imageTagRegex = "\\[IMAGE:([^]]+)]".toRegex()
+            val parts = imageTagRegex.split(fullText)
+            val images = imageTagRegex.findAll(fullText).toList()
 
-                // Split by [IMAGE:...] tags
-                val parts = fullText.split("(?=\\[IMAGE:)".toRegex())
+            var pointer = 0 // مؤشر داخل النص الأصلي (مع الصور)
 
-                // Track where we are in the text
-                var currentIndex = 0
+            parts.forEachIndexed { index, part ->
 
-                parts.forEach { part ->
-                    if (part.startsWith("[IMAGE:")) {
-                        // ... Image Logic ...
-                        val endIndex = part.indexOf("]")
-                        if (endIndex != -1) {
-                            val imagePath = part.substring(7, endIndex)
-                            try {
-                                val imgFile = File(imagePath)
-                                if (imgFile.exists()) {
-                                    val imageData = ImageDataFactory.create(imgFile.absolutePath)
-                                    val pdfImage = Image(imageData)
-                                    pdfImage.setAutoScale(true)
-                                    document.add(pdfImage)
-                                }
-                            } catch (e: Exception) {}
+                // ----- نص عادي -----
+                if (part.isNotEmpty()) {
+                    val paragraph = Paragraph()
 
-                            // Process text after image in this part
-                            currentIndex += (endIndex + 1) // skip tag
-                        }
-                    } else {
-                        // Text Part
-                        val p = Paragraph()
-                        // Just a simple split for now - for perfect formatting we need complex range mapping
-                        // This simplistic approach applies the font globally.
-                        // To support Colors, we must check spans.
+                    var i = 0
+                    while (i < part.length) {
+                        val ch = part[i]
+                        val globalIndex = pointer + i
 
-                        val textObj = Text(part)
-
-                        // Apply Styles (Simple Global check for the part - improving this would require char-by-char)
-                        // For now, let's enable the Arabic direction
-                        p.setBaseDirection(BaseDirection.RIGHT_TO_LEFT)
-                        p.setTextAlignment(TextAlignment.RIGHT) // Default for Arabic
-
-                        // Check formatting (simplified)
-                        val spans = annotatedString.spanStyles.filter {
-                            it.start >= currentIndex && it.end <= currentIndex + part.length
+                        // كل الـ spans اللي فوق هذا الحرف
+                        val overlappingSpans = spans.filter { span ->
+                            globalIndex >= span.start && globalIndex < span.end
                         }
 
-                        if (spans.isNotEmpty()) {
-                            spans.firstOrNull()?.let { span ->
-                                if (span.item.fontWeight == FontWeight.Bold) textObj.setBold()
-                                if (span.item.fontStyle == FontStyle.Italic) textObj.setItalic()
-                                if (span.item.color != Color.Unspecified) {
-                                    val argb = span.item.color.toArgb()
-                                    val r = android.graphics.Color.red(argb)
-                                    val g = android.graphics.Color.green(argb)
-                                    val b = android.graphics.Color.blue(argb)
-                                    textObj.setFontColor(DeviceRgb(r, g, b))
-                                }
-                                if (span.item.fontSize != TextUnit.Unspecified) {
-                                    textObj.setFontSize(span.item.fontSize.value)
-                                }
+                        val textObj = com.itextpdf.layout.element.Text(ch.toString())
+
+                        if (overlappingSpans.isNotEmpty()) {
+                            // Bold / Italic / Underline
+                            if (overlappingSpans.any { it.item.fontWeight == FontWeight.Bold }) {
+                                textObj.setBold()
+                            }
+                            if (overlappingSpans.any { it.item.fontStyle == FontStyle.Italic }) {
+                                textObj.setItalic()
+                            }
+                            if (overlappingSpans.any {
+                                    it.item.textDecoration == TextDecoration.Underline
+                                }) {
+                                textObj.setUnderline()
+                            }
+
+                            // Font size (آخر واحد)
+                            val sizeSpan = overlappingSpans.lastOrNull {
+                                it.item.fontSize != TextUnit.Unspecified
+                            }
+                            sizeSpan?.let {
+                                textObj.setFontSize(it.item.fontSize.value)
+                            }
+
+                            // Color (آخر span فيه لون محدد)
+                            val colorSpan = overlappingSpans.lastOrNull {
+                                it.item.color != Color.Unspecified
+                            }
+                            colorSpan?.let {
+                                val c = it.item.color.toArgb()
+                                textObj.setFontColor(
+                                    DeviceRgb(
+                                        android.graphics.Color.red(c),
+                                        android.graphics.Color.green(c),
+                                        android.graphics.Color.blue(c)
+                                    )
+                                )
                             }
                         }
 
-                        p.add(textObj)
-                        document.add(p)
-                        currentIndex += part.length
+                        paragraph.add(textObj)
+                        i++
                     }
+
+                    paragraph.setTextAlignment(TextAlignment.LEFT)
+                    doc.add(paragraph)
+                }
+
+                // ----- صورة لو فيه -----
+                if (index < images.size) {
+                    val match = images[index]
+                    val imgPath = match.groupValues[1]
+
+                    try {
+                        val file = File(imgPath)
+                        if (file.exists()) {
+                            val imgData = ImageDataFactory.create(file.absolutePath)
+                            val pdfImg = Image(imgData)
+                            pdfImg.setAutoScale(true)
+                            doc.add(pdfImg)
+                        }
+                    } catch (_: Exception) {
+                    }
+
+                    // نعدي على النص + وسُم الصورة الأصلي
+                    pointer += part.length + match.value.length
+                } else {
+                    // آخر جزء بدون صورة بعده
+                    pointer += part.length
                 }
             }
-            document.close()
-            outputStream.close()
-            Toast.makeText(context, "Saved to Downloads: $finalFileName", Toast.LENGTH_LONG).show()
         }
+
+        doc.close()
+        outputStream.close()
+
+        Toast.makeText(context, "Saved: $outputName", Toast.LENGTH_LONG).show()
+
     } catch (e: Exception) {
         e.printStackTrace()
-        Toast.makeText(context, "Export Failed: ${e.message}", Toast.LENGTH_LONG).show()
+        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
     }
 }
 
+
+
+// ---------- RESTORE FORMAT ----------
 
 fun restoreFormatting(state: RichTextState, jsonString: String) {
     try {
         val json = Json { ignoreUnknownKeys = true }
         val data = json.decodeFromString<FormattingData>(jsonString)
+
         data.paragraphStyles.forEach { p ->
-            val align = when(p.textAlign) { "Left"->TextAlign.Left; "Center"->TextAlign.Center; "Right"->TextAlign.Right; else->TextAlign.Left }
+            val align = when (p.textAlign) {
+                "Left", "TextAlign.Left" -> TextAlign.Left
+                "Center", "TextAlign.Center" -> TextAlign.Center
+                "Right", "TextAlign.Right" -> TextAlign.Right
+                else -> TextAlign.Left
+            }
             state.toggleParagraphStyle(ParagraphStyle(textAlign = align))
         }
+
         data.spanStyles.forEach { s ->
             val color = if (s.color != null) Color(s.color) else Color.Unspecified
             val style = SpanStyle(
-                fontWeight = if(s.fontWeight == "Bold") FontWeight.Bold else null,
-                fontStyle = if(s.fontStyle == "Italic") FontStyle.Italic else null,
-                textDecoration = if(s.textDecoration == "Underline") TextDecoration.Underline else null,
-                fontSize = if(s.fontSize != null) s.fontSize.sp else TextUnit.Unspecified,
+                fontWeight = if (s.fontWeight == "Bold") FontWeight.Bold else null,
+                fontStyle = if (s.fontStyle == "Italic") FontStyle.Italic else null,
+                textDecoration = if (s.textDecoration == "Underline") TextDecoration.Underline else null,
+                fontSize = if (s.fontSize != null) s.fontSize.sp else TextUnit.Unspecified,
                 color = color
             )
-            state.addSpanStyle(style, androidx.compose.ui.text.TextRange(s.start, s.end))
+            state.addSpanStyle(
+                style,
+                androidx.compose.ui.text.TextRange(s.start, s.end)
+            )
         }
-    } catch (e: Exception) { }
+    } catch (_: Exception) {
+        // تجاهل لو في فورمات قديم / خربان
+    }
 }
 
+// ---------- UI HELPERS ----------
+
 @Composable
-fun ToolBtn(isActive: Boolean, icon: androidx.compose.ui.graphics.vector.ImageVector, onClick: () -> Unit) {
+fun ToolBtn(
+    isActive: Boolean,
+    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    onClick: () -> Unit
+) {
     IconButton(
         onClick = onClick,
-        modifier = Modifier.background(if (isActive) GalaxyAccentPurple.copy(alpha = 0.3f) else Color.Transparent, RoundedCornerShape(8.dp))
+        modifier = Modifier.background(
+            if (isActive) GalaxyAccentPurple.copy(alpha = 0.3f) else Color.Transparent,
+            RoundedCornerShape(8.dp)
+        )
     ) {
-        Icon(imageVector = icon, contentDescription = null, tint = if(isActive) GalaxyAccentPurple else GalaxyTextPrimary)
+        Icon(
+            imageVector = icon,
+            contentDescription = null,
+            tint = if (isActive) GalaxyAccentPurple else GalaxyTextPrimary
+        )
     }
 }
 
 @Composable
 fun ColorPickerRow(onColorSelected: (Color) -> Unit) {
-    val colors = listOf(Color.Black, Color.Red, GalaxyAccentPurple, GalaxyAccentTeal, Color(0xFFFF9800), Color.Green, Color.Blue, Color.Gray)
-    Row(modifier = Modifier.fillMaxWidth().background(GalaxySurface).padding(8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    val colors = listOf(
+        Color.Black,
+        Color.Red,
+        GalaxyAccentPurple,
+        GalaxyAccentTeal,
+        Color(0xFFFF9800),
+        Color.Green,
+        Color.Blue,
+        Color.Gray
+    )
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(GalaxySurface)
+            .padding(8.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
         colors.forEach { color ->
-            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(color).border(1.dp, Color.White, CircleShape).clickable { onColorSelected(color) })
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .clip(CircleShape)
+                    .background(color)
+                    .border(1.dp, Color.White, CircleShape)
+                    .clickable { onColorSelected(color) }
+            )
         }
     }
 }
@@ -484,10 +681,33 @@ fun ColorPickerRow(onColorSelected: (Color) -> Unit) {
 @Composable
 fun SizePickerRow(onSizeSelected: (Float) -> Unit) {
     val sizes = listOf(12f, 14f, 16f, 18f, 20f, 24f, 30f, 36f, 48f)
-    Row(modifier = Modifier.fillMaxWidth().background(GalaxySurface).padding(8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(GalaxySurface)
+            .padding(8.dp)
+            .horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
         sizes.forEach { size ->
-            Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(GalaxyBackground).border(1.dp, GalaxyTextSecondary.copy(alpha=0.3f), RoundedCornerShape(8.dp)).clickable { onSizeSelected(size) }.padding(horizontal = 16.dp, vertical = 8.dp)) {
-                androidx.compose.material3.Text("${size.toInt()}", fontSize = 14.sp, color = GalaxyTextPrimary)
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(GalaxyBackground)
+                    .border(
+                        1.dp,
+                        GalaxyTextSecondary.copy(alpha = 0.3f),
+                        RoundedCornerShape(8.dp)
+                    )
+                    .clickable { onSizeSelected(size) }
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
+            ) {
+                Text(
+                    "${size.toInt()}",
+                    fontSize = 14.sp,
+                    color = GalaxyTextPrimary
+                )
             }
         }
     }
