@@ -1,4 +1,4 @@
-package com.example.writetopdf.data
+package com.example.writetopdf.data.local
 
 import androidx.room.Dao
 import androidx.room.Insert
@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 abstract class DocumentDAO {
-    @Query("SELECT * FROM documents")
+    @Query("SELECT * FROM documents ")
     abstract fun getAllDocuments(): Flow<List<Document>>
 
     @Query("SELECT * FROM documents WHERE id = :id")

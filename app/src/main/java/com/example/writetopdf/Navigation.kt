@@ -20,7 +20,7 @@ fun Navigation(navController: NavHostController = rememberNavController()){
         startDestination = "home"
     ){
         composable("home"){
-            HomeScreen(viewModel){document ->
+            HomeScreen(viewModel) { document ->
                 navController.currentBackStackEntry?.savedStateHandle?.set("document", document)
                 navController.navigate("editor")
             }

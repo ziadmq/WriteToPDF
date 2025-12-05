@@ -12,17 +12,16 @@ data class FormattingData(
 data class SpanStyleData (
     val start: Int,
     val end: Int,
-    val fontWeight: String? = null,  // "Bold" or null
-    val fontStyle: String? = null,   // "Italic" or null
-    val textDecoration: String? = null, // "Underline" or null
-    val fontSize: Float? = null
+    val fontWeight: String? = null,
+    val fontStyle: String? = null,
+    val textDecoration: String? = null,
+    val fontSize: Float? = null,
+    val color: Int? = null // ✅ Added Color Field
 )
 
 @Serializable
 data class ParagraphStyleData(
     val start: Int,
     val end: Int,
-    val textAlign: String? = null  // "Left", "Center", "Right", "Justify"
+    val textAlign: String? = null
 )
-
-

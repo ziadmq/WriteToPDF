@@ -2,300 +2,160 @@ package com.example.writetopdf
 
 import android.os.Build
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.writetopdf.domain.models.Document
+import com.example.writetopdf.ui.theme.*
 import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.O)
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: DocumentViewModel,
     navigateToEditor: (document: Document) -> Unit = {}
 ) {
     val allDocuments = viewModel.allDocuments.collectAsState(initial = emptyList()).value
+    var searchQuery by remember { mutableStateOf("") } // ✅ Search State
+
+    // ✅ Filter Logic
+    val filteredDocuments = allDocuments.filter { doc ->
+        doc.title.contains(searchQuery, ignoreCase = true) ||
+                doc.content.contains(searchQuery, ignoreCase = true)
+    }
 
     Scaffold(
-        topBar = {
-            TopAppBar(
-                title = {
-                    Text(
-                        text = "WriteToPDF",
-                        fontWeight = FontWeight.Bold,
-                        fontSize = 20.sp,
-                        color = Color.White
-                    )
-                },
-                navigationIcon = {
-                    Image(
-                        painter = painterResource(id = R.drawable.doc_logo),
-                        contentDescription = null,
-                        modifier = Modifier.size(50.dp)
-                    )
-                },
-                colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color(0xFF1E88E5) // Blue color for the app bar
-                )
-            )
-        }
-    ) {
-        Column(
-            modifier = Modifier
-                .padding(it)
-                .fillMaxSize()
-                .background(Color(0xFFF5F5F5))
-        ) {
+        containerColor = GalaxyBackground,
+        floatingActionButton = {
             Box(
                 modifier = Modifier
-                    .padding(16.dp)
-                    .height(220.dp)
-                    .fillMaxWidth()
-                    .background(
-                        brush = Brush.linearGradient(
-                            colors = listOf(
-                                Color(0xFF42A5F5),
-                                Color(0xFF1E88E5)
-                            )
-                        ),
-                        shape = RoundedCornerShape(12.dp)
-                    )
+                    .size(64.dp)
+                    .shadow(12.dp, CircleShape)
+                    .clip(CircleShape)
+                    .background(GalaxyGradient)
                     .clickable {
                         val document = Document(
                             id = 0,
-                            title = "New Document",
-                            content = "This is a new document...",
-                            lastUpdated = LocalDate
-                                .now()
-                                .toString()
+                            title = "Untitled Design",
+                            content = "",
+                            lastUpdated = LocalDate.now().toString()
                         )
-                        viewModel.addDocument(document)
                         navigateToEditor(document)
                     },
                 contentAlignment = Alignment.Center
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = null,
-                        modifier = Modifier.size(50.dp),
-                        tint = Color.White
-                    )
-                    Text(
-                        text = "Create New Document",
-                        color = Color.White,
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 16.sp
-                    )
-                }
-            }
-
-            LazyVerticalGrid(
-                columns = GridCells.Fixed(2),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                items(allDocuments) { document ->
-                    DocumentItem(
-                        document = document,
-                        navigateToEditor,
-                        deleteDocument = { viewModel.deleteDocument(document.id) },
-                        updateDocument = { updatedDoc -> viewModel.updateDocument(updatedDoc) }
-                    )
-                }
+                Icon(Icons.Default.Add, contentDescription = "Create", tint = Color.White, modifier = Modifier.size(32.dp))
             }
         }
-    }
-}
-
-@Composable
-fun DocumentItem(
-    document: Document,
-    navigateToEditor: (document: Document) -> Unit,
-    deleteDocument: () -> Unit,
-    updateDocument: (document: Document) -> Unit
-) {
-    val moreDropDownExpanded = remember { mutableStateOf(false) }
-    val titleState = remember { mutableStateOf("") }
-    val isDialogOpen = remember { mutableStateOf(false) }
-
-    val previewText = document.content.trim()
-        .split("\\s+".toRegex())
-        .take(10)
-        .joinToString(" ")
-
-    if (isDialogOpen.value) {
-        AlertDialog(
-            onDismissRequest = { isDialogOpen.value = false },
-            title = { Text(text = "Enter Document Title") },
-            text = {
-                Column {
-                    TextField(
-                        value = titleState.value,
-                        onValueChange = { titleState.value = it },
-                        placeholder = { Text(text = "Document Title") },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    updateDocument(
-                        document.copy(title = titleState.value)
-                    )
-                    isDialogOpen.value = false
-                }) {
-                    Text(text = "Rename")
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { isDialogOpen.value = false }) {
-                    Text(text = "Cancel")
-                }
-            }
-        )
-    }
-
-    Box(
-        modifier = Modifier
-            .height(240.dp)
-            .width(180.dp)
-            .shadow(
-                elevation = 6.dp,
-                shape = RoundedCornerShape(10.dp)
-            )
-            .background(Color.White, shape = RoundedCornerShape(10.dp))
-            .clickable { navigateToEditor(document) }
-    ) {
+    ) { paddingValues ->
         Column(
-            verticalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+                .padding(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(150.dp)
-                    .background(
-                        brush = Brush.verticalGradient(
-                            colors = listOf(
-                                Color(0xFFBBDEFB),
-                                Color(0xFF90CAF9)
-                            )
-                        ),
-                        shape = RoundedCornerShape(topStart = 10.dp, topEnd = 10.dp)
-                    )
-            ) {
-                Text(
-                    text = "$previewText...",
-                    fontSize = 14.sp,
-                    color = Color.Black.copy(alpha = 0.7f),
-                    maxLines = 4,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier
-                        .padding(8.dp)
-                        .align(Alignment.Center)
-                )
-            }
-
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)
-            ) {
-                Text(
-                    text = document.title,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(bottom = 4.dp)
-                )
-
+            // Header & Search
+            Column(modifier = Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
+                    Column {
+                        Text(
+                            text = "Hello, Creator",
+                            fontSize = 28.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = GalaxyTextPrimary
+                        )
+                        Text(
+                            text = "What will you design today?",
+                            fontSize = 14.sp,
+                            color = GalaxyTextSecondary
+                        )
+                    }
+                }
+
+                // ✅ Search Bar UI
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp)
+                        .background(GalaxySurface, CircleShape)
+                        .border(1.dp, Color.White.copy(alpha = 0.1f), CircleShape)
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Icon(Icons.Default.Search, contentDescription = null, tint = GalaxyTextSecondary)
+                        Spacer(modifier = Modifier.width(8.dp))
+                        BasicTextField(
+                            value = searchQuery,
+                            onValueChange = { searchQuery = it },
+                            textStyle = LocalTextStyle.current.copy(color = GalaxyTextPrimary, fontSize = 16.sp),
+                            cursorBrush = SolidColor(GalaxyAccentTeal),
+                            modifier = Modifier.fillMaxWidth(),
+                            decorationBox = { innerTextField ->
+                                if (searchQuery.isEmpty()) {
+                                    Text("Search designs...", color = GalaxyTextSecondary.copy(alpha = 0.5f))
+                                }
+                                innerTextField()
+                            }
+                        )
+                    }
+                }
+            }
+
+            // Grid
+            if (filteredDocuments.isEmpty()) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Text(
-                        text = document.lastUpdated,
-                        fontSize = 12.sp,
-                        color = Color.Gray
+                        if(searchQuery.isEmpty()) "Your galaxy is empty.\nTap + to start." else "No results found.",
+                        color = GalaxyTextSecondary,
+                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
                     )
-
-                    Box {
-                        DropdownMenu(
-                            expanded = moreDropDownExpanded.value,
-                            onDismissRequest = { moreDropDownExpanded.value = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text("Rename") },
-                                onClick = {
-                                    isDialogOpen.value = true
-                                    moreDropDownExpanded.value = false
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text("Delete") },
-                                onClick = {
-                                    deleteDocument()
-                                    moreDropDownExpanded.value = false
-                                }
-                            )
-                        }
-
-                        IconButton(onClick = { moreDropDownExpanded.value = true }) {
-                            Icon(
-                                imageVector = Icons.Default.MoreVert,
-                                contentDescription = "More options",
-                                tint = Color.Gray
-                            )
-                        }
+                }
+            } else {
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp)
+                ) {
+                    items(filteredDocuments) { document ->
+                        GalaxyDocumentItem(
+                            document = document,
+                            onClick = { navigateToEditor(document) },
+                            onDelete = { viewModel.deleteDocument(document.id) },
+                            onRename = { updatedDoc -> viewModel.updateDocument(updatedDoc) }
+                        )
                     }
                 }
             }
@@ -303,22 +163,107 @@ fun DocumentItem(
     }
 }
 
-@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-@Preview
-fun PreviewDocumentItem() {
-    HomeScreen(viewModel = DocumentViewModel(), navigateToEditor = {})
-//    val sampleDocument = Document(
-//        id = 1,
-//        title = "Sample Document",
-//        content = "This is a preview of the document content.",
-//        lastUpdated = "2023-09-25"
-//    )
-//
-//    DocumentItem(
-//        document = sampleDocument,
-//        navigateToEditor = { /* No-op for preview */ },
-//        deleteDocument = { /* No-op for preview */ },
-//        updateDocument = {}
-//    )
+fun GalaxyDocumentItem(
+    document: Document,
+    onClick: () -> Unit,
+    onDelete: () -> Unit,
+    onRename: (Document) -> Unit
+) {
+    val moreMenuExpanded = remember { mutableStateOf(false) }
+    val renameDialogOpen = remember { mutableStateOf(false) }
+    val newTitle = remember { mutableStateOf(document.title) }
+
+    if (renameDialogOpen.value) {
+        AlertDialog(
+            containerColor = GalaxySurface,
+            titleContentColor = GalaxyTextPrimary,
+            textContentColor = GalaxyTextSecondary,
+            onDismissRequest = { renameDialogOpen.value = false },
+            title = { Text("Rename") },
+            text = {
+                OutlinedTextField(
+                    value = newTitle.value,
+                    onValueChange = { newTitle.value = it },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedTextColor = GalaxyTextPrimary,
+                        unfocusedTextColor = GalaxyTextPrimary,
+                        cursorColor = GalaxyAccentTeal,
+                        focusedBorderColor = GalaxyAccentTeal,
+                        unfocusedBorderColor = GalaxyTextSecondary
+                    ),
+                    singleLine = true
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        onRename(document.copy(title = newTitle.value))
+                        renameDialogOpen.value = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = GalaxyAccentPurple)
+                ) { Text("Save") }
+            },
+            dismissButton = {
+                TextButton(onClick = { renameDialogOpen.value = false }) { Text("Cancel", color = GalaxyTextSecondary) }
+            }
+        )
+    }
+
+    Column(
+        modifier = Modifier
+            .clickable { onClick() }
+            .background(Color.Transparent)
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(0.75f)
+                .clip(RoundedCornerShape(12.dp))
+                .background(GalaxySurface)
+                .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
+        ) {
+            // Remove Image tags for preview text to keep it clean
+            val cleanText = document.content.replace(Regex("\\[IMAGE:.*?\\]"), "[Image]")
+
+            Text(
+                text = cleanText.ifEmpty { "Empty Canvas" },
+                color = GalaxyTextSecondary.copy(alpha = 0.5f),
+                fontSize = 8.sp,
+                lineHeight = 10.sp,
+                modifier = Modifier.padding(12.dp),
+                maxLines = 8,
+                overflow = TextOverflow.Ellipsis
+            )
+            Box(
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .background(Brush.verticalGradient(colors = listOf(Color.Transparent, GalaxyBackground.copy(alpha=0.8f))))
+            )
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
+            verticalAlignment = Alignment.Top,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(text = document.title, color = GalaxyTextPrimary, fontWeight = FontWeight.SemiBold, fontSize = 14.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(text = document.lastUpdated, color = GalaxyTextSecondary, fontSize = 10.sp)
+            }
+            Box {
+                Icon(Icons.Default.MoreVert, contentDescription = "Menu", tint = GalaxyTextSecondary, modifier = Modifier.size(20.dp).clickable { moreMenuExpanded.value = true })
+                DropdownMenu(
+                    expanded = moreMenuExpanded.value,
+                    onDismissRequest = { moreMenuExpanded.value = false },
+                    modifier = Modifier.background(GalaxySurface)
+                ) {
+                    DropdownMenuItem(text = { Text("Rename", color = GalaxyTextPrimary) }, onClick = { renameDialogOpen.value = true; moreMenuExpanded.value = false }, leadingIcon = { Icon(Icons.Default.Edit, null, tint = GalaxyAccentTeal) })
+                    DropdownMenuItem(text = { Text("Delete", color = Color(0xFFFF5252)) }, onClick = { onDelete(); moreMenuExpanded.value = false }, leadingIcon = { Icon(Icons.Default.Delete, null, tint = Color(0xFFFF5252)) })
+                }
+            }
+        }
+    }
 }

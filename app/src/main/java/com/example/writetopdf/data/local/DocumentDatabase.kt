@@ -1,4 +1,4 @@
-package com.example.writetopdf.data
+package com.example.writetopdf.data.local
 
 import androidx.room.Database
 import androidx.room.RoomDatabase

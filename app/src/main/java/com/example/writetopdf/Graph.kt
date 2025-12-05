@@ -2,8 +2,8 @@ package com.example.writetopdf
 
 import android.content.Context
 import androidx.room.Room
-import com.example.writetopdf.data.DocumentDatabase
-import com.example.writetopdf.data.DocumentRepository
+import com.example.writetopdf.data.local.DocumentDatabase
+import com.example.writetopdf.data.repository.DocumentRepository
 
 object Graph {
     private lateinit var database: DocumentDatabase

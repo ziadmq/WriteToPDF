@@ -1,7 +1,10 @@
-package com.example.writetopdf.data
+package com.example.writetopdf.data.repository
 
+import com.example.writetopdf.data.local.DocumentDAO
+import com.example.writetopdf.data.local.DocumentEntity
 import com.example.writetopdf.domain.models.Document
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 class DocumentRepository(private val documentDao: DocumentDAO) {
     fun getAllDocuments(): Flow<List<Document>> {
@@ -24,3 +27,5 @@ class DocumentRepository(private val documentDao: DocumentDAO) {
         documentDao.updateDocument(document)
     }
 }
+
+

@@ -2,7 +2,7 @@ package com.example.writetopdf
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.writetopdf.data.DocumentRepository
+import com.example.writetopdf.data.repository.DocumentRepository
 import com.example.writetopdf.domain.models.Document
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch

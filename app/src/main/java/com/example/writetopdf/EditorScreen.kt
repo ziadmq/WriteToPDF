@@ -7,46 +7,34 @@ import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Environment
-import android.provider.Settings
 import android.util.Log
 import android.widget.Toast
-import androidx.compose.foundation.Image
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Build
 import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.ParagraphStyle
@@ -65,7 +53,8 @@ import com.example.writetopdf.domain.models.Document
 import com.example.writetopdf.domain.models.FormattingData
 import com.example.writetopdf.domain.models.ParagraphStyleData
 import com.example.writetopdf.domain.models.SpanStyleData
-import com.google.accompanist.flowlayout.FlowRow
+import com.example.writetopdf.ui.theme.*
+import com.itextpdf.io.image.ImageDataFactory
 import com.itextpdf.kernel.pdf.PdfDocument
 import com.itextpdf.kernel.pdf.PdfWriter
 import com.mohamedrejeb.richeditor.model.RichTextState
@@ -75,6 +64,7 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.io.File
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun EditorScreen(
@@ -83,618 +73,341 @@ fun EditorScreen(
     navigateToHome: () -> Unit = {}
 ) {
     val context = LocalContext.current
-
     val richTextState = rememberRichTextState()
+    val isSaveDialogOpen = remember { mutableStateOf(false) }
+    val titleState = remember { mutableStateOf(document.title) }
 
-    val isDialogOpen = remember {
-        mutableStateOf(false)
-    }
+    // Tools
+    var showColorPicker by remember { mutableStateOf(false) }
+    var showSizePicker by remember { mutableStateOf(false) }
 
-    val titleState = remember {
-        mutableStateOf("")
-    }
-
-    val sizeDropDownExpanded = remember {
-        mutableStateOf(false)
-    }
-
-    if (ContextCompat.checkSelfPermission(
-            context,
-            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-        ) != android.content.pm.PackageManager.PERMISSION_GRANTED
-    ) {
-        (LocalContext.current as? Activity)?.let {
-            ActivityCompat.requestPermissions(
-                it,
-                arrayOf(
-                    android.Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                    android.Manifest.permission.READ_EXTERNAL_STORAGE
-                ),
-                1
-            )
+    // Image Picker
+    val imagePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri: Uri? ->
+        uri?.let {
+            // FIXED: Use setHtml to append the image tag instead of addText
+            val currentHtml = richTextState.toHtml()
+            val imageTag = "<br>[IMAGE:${it.toString()}]<br>"
+            richTextState.setHtml(currentHtml + imageTag)
         }
     }
 
-    val fontSizes = listOf(12.sp, 16.sp, 20.sp, 24.sp, 28.sp) // Define font sizes
-    val selectedFontSize =
-        remember { mutableStateOf(fontSizes.first()) } // Keep track of selected font size
+    // Permissions
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q && ContextCompat.checkSelfPermission(
+            context,
+            android.Manifest.permission.WRITE_EXTERNAL_STORAGE
+        ) != PackageManager.PERMISSION_GRANTED
+    ) {
+        (LocalContext.current as? Activity)?.let {
+            ActivityCompat.requestPermissions(it, arrayOf(android.Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
+        }
+    }
 
     val currentSpanStyle = richTextState.currentSpanStyle
     val currentParagraphStyle = richTextState.currentParagraphStyle
-    val isBold = currentSpanStyle.fontWeight == FontWeight.Bold
-    val isItalic = currentSpanStyle.fontStyle == FontStyle.Italic
-//    val isUnderlineActive = currentSpanStyle.textDecoration == TextDecoration.Underline
-    val isLeftAlignActive = currentParagraphStyle.textAlign == TextAlign.Left
-    val isCenterAlignActive = currentParagraphStyle.textAlign == TextAlign.Center
-    val isRightAlignActive = currentParagraphStyle.textAlign == TextAlign.Right
-    val isJustifyAlignActive = currentParagraphStyle.textAlign == TextAlign.Justify
-    val textColors = listOf(
-        Color.Black,
-        Color.Red,
-        Color.Blue,
-        Color.Green,
-        Color.Magenta
-    )
-    val colorDropdownExpanded = remember { mutableStateOf(false) }
-    var selectedColor by remember { mutableStateOf(Color.Black) }
+    val json = Json { allowSpecialFloatingPointValues = true; ignoreUnknownKeys = true; isLenient = true }
 
-    val json = Json {
-        allowSpecialFloatingPointValues = true  // This allows NaN values
-        ignoreUnknownKeys = true  // This helps with backwards compatibility
-        isLenient = true  // Makes the parser more forgiving
-    }
-    Box {
-        DropdownMenu(
-            expanded = colorDropdownExpanded.value,
-            onDismissRequest = { colorDropdownExpanded.value = false }
-        ) {
-            textColors.forEach { color ->
-                DropdownMenuItem(
-                    text = {
-                        Box(
-                            modifier = Modifier
-                                .size(24.dp)
-                                .background(color)
-                        )
-                    },
-                    onClick = {
-                        selectedColor = color
-                        richTextState.toggleSpanStyle(SpanStyle(color = color))
-                        colorDropdownExpanded.value = false
+    // Restore Data
+    LaunchedEffect(document) {
+        richTextState.setText(document.content)
+        document.formatting?.let { formattingJson ->
+            try {
+                val formattingData = json.decodeFromString<FormattingData>(formattingJson)
+                formattingData.paragraphStyles.forEach { paragraphStyle ->
+                    val relevantSpans = formattingData.spanStyles.filter { spanStyle ->
+                        spanStyle.start < paragraphStyle.end && spanStyle.end > paragraphStyle.start
+                    }.sortedBy { it.start }
+
+                    if (relevantSpans.isNotEmpty()) {
+                        relevantSpans.forEach { spanStyle ->
+                            val color = spanStyle.color?.let { Color(it) } ?: Color.Unspecified
+                            val style = SpanStyle(
+                                fontWeight = if (spanStyle.fontWeight == "Bold") FontWeight.Bold else FontWeight.Normal,
+                                fontStyle = if (spanStyle.fontStyle == "Italic") FontStyle.Italic else FontStyle.Normal,
+                                textDecoration = if (spanStyle.textDecoration == "Underline") TextDecoration.Underline else TextDecoration.None,
+                                fontSize = if (spanStyle.fontSize != null && !spanStyle.fontSize.isNaN()) spanStyle.fontSize.sp else TextUnit.Unspecified,
+                                color = color
+                            )
+                            richTextState.addSpanStyle(style, TextRange(spanStyle.start, spanStyle.end))
+                        }
                     }
-                )
+                    val style = when (paragraphStyle.textAlign) {
+                        "Left" -> TextAlign.Left
+                        "Center" -> TextAlign.Center
+                        "Right" -> TextAlign.Right
+                        "Justify" -> TextAlign.Justify
+                        else -> null
+                    }?.let { ParagraphStyle(textAlign = it) }
+                    if (style != null) richTextState.toggleParagraphStyle(style)
+                }
+            } catch (e: Exception) {
+                Log.e("EditorScreen", "Error restoring: ${e.message}")
             }
         }
+    }
 
-        LaunchedEffect(document) {
-            richTextState.setText(document.content)
-
-            // Restore formatting if available
-            document.formatting?.let { formattingJson ->
-                try {
-                    val formattingData = json.decodeFromString<FormattingData>(formattingJson)
-                    formattingData.paragraphStyles.forEach { paragraphStyle ->
-
-                        // Find all span styles that intersect with this paragraph
-                        val relevantSpans = formattingData.spanStyles.filter { spanStyle ->
-                            spanStyle.start < paragraphStyle.end && spanStyle.end > paragraphStyle.start
-                        }.sortedBy { it.start }
-
-                        if (relevantSpans.isNotEmpty()) {
-                            // Apply span styles
-                            relevantSpans.forEach { spanStyle ->
-                                val style = SpanStyle(
-                                    fontWeight = when (spanStyle.fontWeight) {
-                                        "Bold" -> FontWeight.Bold
-                                        else -> FontWeight.Normal
-                                    },
-                                    fontStyle = when (spanStyle.fontStyle) {
-                                        "Italic" -> FontStyle.Italic
-                                        else -> FontStyle.Normal
-                                    },
-                                    fontSize = when {
-                                        spanStyle.fontSize == null -> TextUnit.Unspecified
-                                        spanStyle.fontSize.isNaN() -> TextUnit.Unspecified
-                                        spanStyle.fontSize < 0 -> TextUnit.Unspecified
-                                        else -> spanStyle.fontSize.sp
-                                    }
-                                )
-                                richTextState.addSpanStyle(
-                                    style,
-                                    TextRange(spanStyle.start, spanStyle.end)
-                                )
-                            }
-                        }
-                        // Apply paragraph styles
-                        val style = when (paragraphStyle.textAlign) {
-                            "Left" -> TextAlign.Left
-                            "Center" -> TextAlign.Center
-                            "Right" -> TextAlign.Right
-                            "Justify" -> TextAlign.Justify
-                            else -> null
-                        }?.let {
-                            ParagraphStyle(
-                                textAlign = it
-                            )
-                        }
-                        if (style != null) {
-                            richTextState.toggleParagraphStyle(style)
-                        }
+    Scaffold(
+        modifier = Modifier.imePadding(),
+        containerColor = GalaxyBackground,
+        topBar = {
+            TopAppBar(
+                title = {
+                    OutlinedTextField(
+                        value = titleState.value,
+                        onValueChange = { titleState.value = it },
+                        modifier = Modifier.height(50.dp),
+                        textStyle = LocalTextStyle.current.copy(fontSize = 18.sp, color = GalaxyTextPrimary),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Color.Transparent,
+                            unfocusedBorderColor = Color.Transparent,
+                            cursorColor = GalaxyAccentTeal,
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            focusedTextColor = GalaxyTextPrimary,
+                            unfocusedTextColor = GalaxyTextPrimary
+                        ),
+                        placeholder = { Text("Untitled", color = GalaxyTextSecondary) }
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        handleSave(document, titleState.value, richTextState, json, viewModel)
+                        navigateToHome()
+                    }) {
+                        Icon(Icons.Default.ArrowBack, contentDescription = "Back", tint = GalaxyTextPrimary)
                     }
-                } catch (e: Exception) {
-                    Log.e("EditorScreen", "Error restoring formatting: ${e.message}")
+                },
+                actions = {
+                    IconButton(onClick = { isSaveDialogOpen.value = true }) {
+                        Icon(Icons.Default.Check, contentDescription = "Export PDF", tint = GalaxyAccentTeal)
+                    }
+                    IconButton(onClick = {
+                        handleSave(document, titleState.value, richTextState, json, viewModel)
+                        Toast.makeText(context, "Saved to Galaxy", Toast.LENGTH_SHORT).show()
+                    }) {
+                        Icon(Icons.Default.Check, contentDescription = "Save", tint = GalaxyAccentPurple)
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = GalaxyBackground)
+            )
+        },
+        bottomBar = {
+            Column(modifier = Modifier.background(GalaxySurface)) {
+                if(showColorPicker) {
+                    ColorPickerRow(onColorSelected = {
+                        richTextState.toggleSpanStyle(SpanStyle(color = it))
+                        showColorPicker = false
+                    })
+                }
+                if(showSizePicker) {
+                    SizePickerRow(onSizeSelected = {
+                        richTextState.toggleSpanStyle(SpanStyle(fontSize = it.sp))
+                        showSizePicker = false
+                    })
+                }
+                Row(
+                    modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).padding(horizontal = 8.dp, vertical = 12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Add Image Button
+                    IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+                        Icon(Icons.Default.Build, contentDescription = "Image", tint = GalaxyAccentTeal)
+                    }
+
+                    Divider(modifier = Modifier.height(24.dp).width(1.dp), color = GalaxyTextSecondary)
+
+                    ToolBtn(isActive = currentSpanStyle.fontWeight == FontWeight.Bold, iconRes = R.drawable.bold_solid) {
+                        richTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
+                    }
+                    ToolBtn(isActive = currentSpanStyle.fontStyle == FontStyle.Italic, iconRes = R.drawable.italic_solid) {
+                        richTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
+                    }
+                    ToolBtn(isActive = currentSpanStyle.textDecoration == TextDecoration.Underline, iconRes = R.drawable.underline_solid) {
+                        richTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+                    }
+                    Divider(modifier = Modifier.height(24.dp).width(1.dp), color = GalaxyTextSecondary)
+                    IconButton(onClick = { showColorPicker = !showColorPicker; showSizePicker = false }) {
+                        Icon(Icons.Default.Home, contentDescription = "Color", tint = if(showColorPicker) GalaxyAccentTeal else GalaxyTextPrimary)
+                    }
+                    IconButton(onClick = { showSizePicker = !showSizePicker; showColorPicker = false }) {
+                        Icon(Icons.Default.Delete, contentDescription = "Size", tint = if(showSizePicker) GalaxyAccentTeal else GalaxyTextPrimary)
+                    }
+                    Divider(modifier = Modifier.height(24.dp).width(1.dp), color = GalaxyTextSecondary)
+                    ToolBtn(isActive = currentParagraphStyle.textAlign == TextAlign.Left, iconRes = R.drawable.align_left_solid) {
+                        richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Left))
+                    }
+                    ToolBtn(isActive = currentParagraphStyle.textAlign == TextAlign.Center, iconRes = R.drawable.align_center_solid) {
+                        richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Center))
+                    }
+                    ToolBtn(isActive = currentParagraphStyle.textAlign == TextAlign.Right, iconRes = R.drawable.align_right_solid) {
+                        richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Right))
+                    }
                 }
             }
         }
-        Scaffold(
-            modifier = Modifier
-                .fillMaxSize()
-                .imePadding(),
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            text = "WriteToPDF",
-                            fontWeight = FontWeight.Bold,
-                            fontSize = 20.sp,
-                            color = Color.White
-                        )
-                    },
-                    navigationIcon = {
-                        Image(
-                            painter = painterResource(id = R.drawable.doc_logo),
-                            contentDescription = null,
-                            modifier = Modifier.size(50.dp)
-                        )
-                    },
-                    actions = {
-                        IconButton(onClick = {
-                            isDialogOpen.value = true
-                        }) {
-                            Icon(
-                                painter = painterResource(id = R.drawable.download_solid),
-                                contentDescription = "save",
-                                modifier = Modifier.size(24.dp),
-                                tint = Color.White // Set icon color to white
-                            )
-                        }
-                        IconButton(onClick = {
-                            val newDocument: Document = saveDocument(document, richTextState, json)
-                            viewModel.updateDocument(newDocument)
-                            navigateToHome()
-                        }) {
-                            Icon(
-                                imageVector = Icons.Default.Check,
-                                contentDescription = null,
-                                modifier = Modifier.size(24.dp),
-                                tint = Color.White // Set icon color to white
-                            )
-                        }
-                    },
-                    colors = androidx.compose.material3.TopAppBarDefaults.topAppBarColors(
-                        containerColor = Color(0xFF1E88E5), // Blue color for the app bar
-                        navigationIconContentColor = Color.White, // Set navigation icon color to white
-                        actionIconContentColor = Color.White, // Set action icon color to white
-                        titleContentColor = Color.White // Set title color to white
-                    )
-                )
-            }
-
-
-        ) {
-
-            if (isDialogOpen.value) {
-                AlertDialog(
-                    onDismissRequest = { isDialogOpen.value = false },
-                    title = { Text(text = "Enter document title") },
-                    text = {
-                        Column {
-                            Text(text = "Please enter a title for your document:")
-                            TextField(
-                                value = titleState.value,
-                                onValueChange = { titleState.value = it },
-                                placeholder = { Text(text = "Document Title") }
-                            )
-                        }
-                    },
-                    confirmButton = {
-                        TextButton(onClick = {
-                            val hasPermission =
-                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                    ContextCompat.checkSelfPermission(
-                                        context,
-                                        android.Manifest.permission.READ_MEDIA_IMAGES
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                } else {
-                                    ContextCompat.checkSelfPermission(
-                                        context,
-                                        android.Manifest.permission.WRITE_EXTERNAL_STORAGE
-                                    ) == PackageManager.PERMISSION_GRANTED
-                                }
+    ) { paddingValues ->
+        if (isSaveDialogOpen.value) {
+            AlertDialog(
+                containerColor = GalaxySurface,
+                titleContentColor = GalaxyTextPrimary,
+                textContentColor = GalaxyTextSecondary,
+                onDismissRequest = { isSaveDialogOpen.value = false },
+                title = { Text("Export to PDF") },
+                text = { Text("Save as ${titleState.value}.pdf?") },
+                confirmButton = {
+                    Button(
+                        onClick = {
+                            val hasPermission = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) true else {
+                                ContextCompat.checkSelfPermission(context, android.Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED
+                            }
                             if (hasPermission) {
                                 exportToPdf(context, titleState.value, richTextState)
                             } else {
-                                Toast.makeText(
-                                    context,
-                                    "Please grant storage permission",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                redirectToSettings(context)
+                                Toast.makeText(context, "Permission Required", Toast.LENGTH_SHORT).show()
                             }
-                            isDialogOpen.value = false
-                        }) {
-                            Text(text = "Save")
-                        }
-                    },
-                    dismissButton = {
-                        TextButton(onClick = {
-                            isDialogOpen.value = false
-                        }) {
-                            Text(text = "Cancel")
-                        }
-                    }
-                )
-            }
+                            isSaveDialogOpen.value = false
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = GalaxyAccentTeal)
+                    ) { Text("Export") }
+                },
+                dismissButton = { TextButton(onClick = { isSaveDialogOpen.value = false }) { Text("Cancel", color = GalaxyTextSecondary) } }
+            )
+        }
 
-            Column(
-                modifier = Modifier
-                    .padding(it)
-                    .fillMaxSize()
+        Box(
+            modifier = Modifier.padding(paddingValues).fillMaxSize().background(GalaxyBackground),
+            contentAlignment = Alignment.TopCenter
+        ) {
+            Surface(
+                modifier = Modifier.padding(16.dp).fillMaxWidth().aspectRatio(0.707f).shadow(16.dp).verticalScroll(rememberScrollState()),
+                color = Color.White,
+                shape = RoundedCornerShape(4.dp)
             ) {
-
-                FlowRow(
-                    mainAxisSpacing = 10.dp,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(10.dp)
-                ) {
-                    IconButton(
-                        onClick = {
-                            richTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
-                        },
-                        modifier = Modifier
-                            .background(
-                                color = if (isBold) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.bold_solid),
-                            contentDescription = "Bold",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            richTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
-                        },
-                        modifier = Modifier
-                            .background(
-                                color = if (isItalic) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    )
-                    {
-                        Icon(
-                            painter = painterResource(id = R.drawable.italic_solid),
-                            contentDescription = "Italic",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    Box()
-                    {
-                        DropdownMenu(
-                            expanded = sizeDropDownExpanded.value,
-                            onDismissRequest = { sizeDropDownExpanded.value = false }
-                        ) {
-                            fontSizes.forEach { fontSize ->
-                                DropdownMenuItem(
-                                    text = { Text(text = "${fontSize.value.toInt()}sp") },
-                                    onClick = {
-                                        selectedFontSize.value = fontSize
-                                        richTextState.toggleSpanStyle(SpanStyle(fontSize = fontSize))
-                                        sizeDropDownExpanded.value = false
-                                    }
-                                )
-                            }
-                        }
-
-                        // Selected font size and dropdown icon
-                        Row(
-                            modifier = Modifier
-                                .clickable {
-                                    sizeDropDownExpanded.value = true
-                                } // Open dropdown on click
-                                .padding(8.dp)
-                        ) {
-                            Text(
-                                text = "${selectedFontSize.value.value.toInt()} sp",
-                                modifier = Modifier.padding(end = 4.dp),    // Space between text and icon
-                                fontSize = 20.sp,
-                                fontWeight = FontWeight.Bold
-
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ArrowDropDown,
-                                contentDescription = "Dropdown",
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
-
-                    IconButton(
-                        onClick = {
-                            richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Left))
-                        },
-                        modifier = Modifier
-                            .background(
-                                color = if (isLeftAlignActive) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.align_left_solid),
-                            contentDescription = "Left Align",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Center))
-                        },
-                        modifier = Modifier
-                            .background(
-                                color = if (isCenterAlignActive) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.align_center_solid),
-                            contentDescription = "Center Align",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Right))
-                        },
-                        modifier = Modifier
-                            .background(
-                                color = if (isRightAlignActive) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.align_right_solid),
-                            contentDescription = "Right Align",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-
-                    IconButton(
-                        onClick = {
-                            richTextState.toggleParagraphStyle(ParagraphStyle(textAlign = TextAlign.Justify))
-                        },
-                        modifier = Modifier
-                            .background(
-                                color = if (isJustifyAlignActive) Color.Gray else Color.Transparent,
-                            )
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.align_justify_solid),
-                            contentDescription = "Justify Align",
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = {
-                            colorDropdownExpanded.value = true
-                        },
-                        modifier = Modifier
-                            .background(Color.Transparent)
-                            .padding(4.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.drawable.doc_logo), // ضع أيقونتك هنا
-                            contentDescription = "Text Color",
-                            tint = selectedColor,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                }
-
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .imePadding()
-                ) {
-                    RichTextEditor(
-                        state = richTextState,
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .verticalScroll(rememberScrollState())
-                            .navigationBarsPadding(),
-                        placeholder = { Text(text = "Start typing...") }
-                    )
-                }
+                RichTextEditor(state = richTextState, modifier = Modifier.fillMaxSize().padding(32.dp), placeholder = { Text("Start creating...", color = Color.Gray) })
             }
+        }
+    }
+}
 
+fun handleSave(originalDoc: Document, title: String, richTextState: RichTextState, json: Json, viewModel: DocumentViewModel) {
+    val formattingData = FormattingData(
+        spanStyles = richTextState.annotatedString.spanStyles.map { style ->
+            SpanStyleData(
+                start = style.start,
+                end = style.end,
+                fontWeight = if (style.item.fontWeight == FontWeight.Bold) "Bold" else null,
+                fontStyle = if (style.item.fontStyle == FontStyle.Italic) "Italic" else null,
+                textDecoration = if (style.item.textDecoration == TextDecoration.Underline) "Underline" else null,
+                fontSize = style.item.fontSize?.value,
+                color = style.item.color.takeIf { it != Color.Unspecified }?.toArgb()
+            )
+        },
+        paragraphStyles = richTextState.annotatedString.paragraphStyles.map { style ->
+            ParagraphStyleData(start = style.start, end = style.end, textAlign = when (style.item.textAlign) { TextAlign.Left -> "Left"; TextAlign.Center -> "Center"; TextAlign.Right -> "Right"; TextAlign.Justify -> "Justify"; else -> null })
+        }
+    )
+
+    val newDoc = originalDoc.copy(
+        title = title,
+        content = richTextState.toText(),
+        formatting = json.encodeToString(formattingData),
+        lastUpdated = java.time.LocalDate.now().toString()
+    )
+
+    if (originalDoc.id == 0) {
+        viewModel.addDocument(newDoc)
+    } else {
+        viewModel.updateDocument(newDoc)
+    }
+}
+
+@Composable
+fun ToolBtn(isActive: Boolean, iconRes: Int, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.background(if (isActive) GalaxyAccentPurple.copy(alpha = 0.3f) else Color.Transparent, RoundedCornerShape(8.dp)).border(1.dp, if(isActive) GalaxyAccentPurple else Color.Transparent, RoundedCornerShape(8.dp))
+    ) {
+        Icon(painter = painterResource(id = iconRes), contentDescription = null, modifier = Modifier.size(20.dp), tint = if(isActive) GalaxyAccentPurple else GalaxyTextPrimary)
+    }
+}
+
+@Composable
+fun ColorPickerRow(onColorSelected: (Color) -> Unit) {
+    val colors = listOf(Color.Black, Color.Red, GalaxyAccentPurple, GalaxyAccentTeal, Color(0xFFFF9800), Color.Green)
+    Row(modifier = Modifier.fillMaxWidth().background(GalaxySurface).padding(8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        colors.forEach { color ->
+            Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(color).border(1.dp, Color.White, CircleShape).clickable { onColorSelected(color) })
+        }
+    }
+}
+
+@Composable
+fun SizePickerRow(onSizeSelected: (Float) -> Unit) {
+    val sizes = listOf(12f, 14f, 16f, 18f, 20f, 24f, 30f)
+    Row(modifier = Modifier.fillMaxWidth().background(GalaxySurface).padding(8.dp).horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        sizes.forEach { size ->
+            Box(modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(GalaxyBackground).border(1.dp, GalaxyTextSecondary.copy(alpha=0.3f), RoundedCornerShape(8.dp)).clickable { onSizeSelected(size) }.padding(horizontal = 16.dp, vertical = 8.dp)) {
+                Text("${size.toInt()}", fontSize = 14.sp, color = GalaxyTextPrimary)
+            }
         }
     }
 }
 
 fun exportToPdf(context: Context, fileName: String, richTextState: RichTextState) {
     try {
-        val downloadDir =
-            Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        val pdfFile = File(downloadDir, "$fileName.pdf")
+        val docsDir = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS)
+        if (!docsDir.exists()) docsDir.mkdirs()
+        val pdfFile = File(docsDir, "$fileName.pdf")
+
         val pdfWriter = PdfWriter(pdfFile)
         val pdfDocument = PdfDocument(pdfWriter)
         val document = com.itextpdf.layout.Document(pdfDocument)
 
         val annotatedString = richTextState.annotatedString
-        val text = annotatedString.text
+        val fullText = annotatedString.text
 
-        annotatedString.paragraphStyles.forEach { paragraphStyles ->
+        // Split text by image tag
+        val parts = fullText.split("(?=\\[IMAGE:)".toRegex())
 
-            val currentParagraph = com.itextpdf.layout.element.Paragraph()
-            val paragraphText =
-                annotatedString.text.substring(paragraphStyles.start, paragraphStyles.end)
+        parts.forEach { part ->
+            if (part.startsWith("[IMAGE:")) {
+                val endIndex = part.indexOf("]")
+                if (endIndex != -1) {
+                    val uriString = part.substring(7, endIndex)
+                    try {
+                        val uri = Uri.parse(uriString)
+                        val inputStream = context.contentResolver.openInputStream(uri)
+                        val bytes = inputStream?.readBytes()
+                        inputStream?.close()
 
-            if (paragraphText.isNotEmpty()) {
-                var currentPosition = paragraphStyles.start
-
-                val relevantSpans = annotatedString.spanStyles.filter { spanStyle ->
-                    spanStyle.start < paragraphStyles.end && spanStyle.end > paragraphStyles.start
-                }.sortedBy { it.start }
-
-                if (relevantSpans.isEmpty()) {
-                    currentParagraph.add(com.itextpdf.layout.element.Text(paragraphText))
-                } else {
-                    relevantSpans.forEachIndexed { index, currentSpan ->
-                        if (currentPosition < currentSpan.start) {
-                            val plainText = annotatedString.text.substring(
-                                currentPosition,
-                                currentSpan.start
-                            )
-                            currentParagraph.add(com.itextpdf.layout.element.Text(plainText))
+                        if (bytes != null) {
+                            val imageData = ImageDataFactory.create(bytes)
+                            val pdfImage = com.itextpdf.layout.element.Image(imageData)
+                            pdfImage.setAutoScale(true)
+                            document.add(pdfImage)
                         }
 
-                        val spanEnd = if (index < relevantSpans.size - 1) {
-                            minOf(currentSpan.end, relevantSpans[index + 1].start)
-                        } else {
-                            minOf(currentSpan.end, paragraphStyles.end)
+                        if (endIndex + 1 < part.length) {
+                            document.add(com.itextpdf.layout.element.Paragraph(part.substring(endIndex + 1)))
                         }
-
-                        val styledText = annotatedString.text.substring(
-                            maxOf(currentSpan.start, paragraphStyles.start),
-                            minOf(spanEnd, paragraphStyles.end)
-                        )
-
-                        val span = com.itextpdf.layout.element.Text(styledText)
-
-                        currentSpan.item.let { style ->
-                            style.fontWeight?.let {
-                                if (it == FontWeight.Bold) span.setBold()
-                            }
-                            style.fontStyle?.let {
-                                if (it == FontStyle.Italic) span.setItalic()
-                            }
-                            style.textDecoration?.let {
-                                if (it == TextDecoration.Underline) span.setUnderline()
-                            }
-                            style.fontSize?.let {
-                                if (!it.value.isNaN()) span.setFontSize(it.value)
-                            }
-
-                            // ✅ Add text color support
-                            style.color?.let { composeColor ->
-                                val colorInt = android.graphics.Color.argb(
-                                    (composeColor.alpha * 255).toInt(),
-                                    (composeColor.red * 255).toInt(),
-                                    (composeColor.green * 255).toInt(),
-                                    (composeColor.blue * 255).toInt()
-                                )
-                                span.setFontColor(
-                                    com.itextpdf.kernel.colors.DeviceRgb(
-                                        android.graphics.Color.red(colorInt),
-                                        android.graphics.Color.green(colorInt),
-                                        android.graphics.Color.blue(colorInt)
-                                    )
-                                )
-                            }
-                        }
-
-                        currentParagraph.add(span)
-                        currentPosition = spanEnd
-                    }
-
-                    if (currentPosition < paragraphStyles.end) {
-                        val remainingText = annotatedString.text.substring(
-                            currentPosition,
-                            paragraphStyles.end
-                        )
-                        currentParagraph.add(com.itextpdf.layout.element.Text(remainingText))
+                    } catch (e: Exception) {
+                        document.add(com.itextpdf.layout.element.Paragraph("[Error loading image]"))
                     }
                 }
-
-                val alignment = when (paragraphStyles.item.textAlign) {
-                    TextAlign.Left -> com.itextpdf.layout.properties.TextAlignment.LEFT
-                    TextAlign.Center -> com.itextpdf.layout.properties.TextAlignment.CENTER
-                    TextAlign.Right -> com.itextpdf.layout.properties.TextAlignment.RIGHT
-                    TextAlign.Justify -> com.itextpdf.layout.properties.TextAlignment.JUSTIFIED
-                    else -> com.itextpdf.layout.properties.TextAlignment.LEFT
+            } else {
+                if (part.isNotEmpty()) {
+                    document.add(com.itextpdf.layout.element.Paragraph(part))
                 }
-                currentParagraph.setTextAlignment(alignment)
             }
-
-            document.add(currentParagraph)
         }
 
-        Log.d("pdf", "exportToPdf: done")
-        Toast.makeText(context, "Saved successfully", Toast.LENGTH_SHORT).show()
+        Toast.makeText(context, "Saved to Documents/$fileName.pdf", Toast.LENGTH_LONG).show()
         document.close()
-
     } catch (e: Exception) {
         e.printStackTrace()
-        Log.d("FileError", "exportToPdf: ${e.message}")
+        Log.e("PDFError", "Error: ${e.message}")
+        Toast.makeText(context, "Export Failed", Toast.LENGTH_SHORT).show()
     }
-}
-
-
-private fun redirectToSettings(context: Context) {
-    val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-        data = Uri.fromParts("package", context.packageName, null)
-    }
-    context.startActivity(intent)
-}
-
-
-fun saveDocument(document: Document, richTextState: RichTextState, json: Json): Document {
-
-    val formattingData = FormattingData(
-        spanStyles = richTextState.annotatedString.spanStyles.map { style ->
-            SpanStyleData(
-                start = style.start,
-                end = style.end,
-                fontWeight = when (style.item.fontWeight) {
-                    FontWeight.Bold -> "Bold"
-                    else -> null
-                },
-                fontStyle = when (style.item.fontStyle) {
-                    FontStyle.Italic -> "Italic"
-                    else -> null
-                },
-                textDecoration = when (style.item.textDecoration) {
-                    TextDecoration.Underline -> "Underline"
-                    else -> null
-                },
-                fontSize = style.item.fontSize?.value
-            )
-        },
-        paragraphStyles = richTextState.annotatedString.paragraphStyles.map { style ->
-            ParagraphStyleData(
-                start = style.start,
-                end = style.end,
-                textAlign = when (style.item.textAlign) {
-                    TextAlign.Left -> "Left"
-                    TextAlign.Center -> "Center"
-                    TextAlign.Right -> "Right"
-                    TextAlign.Justify -> "Justify"
-                    else -> null
-                }
-            )
-        }
-    )
-    document.apply {
-        content = richTextState.toText()
-        formatting = json.encodeToString(formattingData)
-    }
-    return document
 }
