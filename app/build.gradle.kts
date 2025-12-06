@@ -7,11 +7,11 @@ plugins {
 }
 
 android {
-    namespace = "com.example.writetopdf"
+    namespace = "com.mobix.editorpdf"
     compileSdk = 36
 
     defaultConfig {
-        applicationId = "com.example.writetopdf"
+        applicationId = "com.mobix.editorpdf"
         minSdk = 24
         targetSdk = 35
         versionCode = 1
