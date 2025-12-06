@@ -16,7 +16,8 @@ data class SpanStyleData (
     val fontStyle: String? = null,
     val textDecoration: String? = null,
     val fontSize: Float? = null,
-    val color: Int? = null // ✅ Added Color Field
+    val color: Int? = null,
+    val background: Int? = null // ✅ Added Background Field for Highlighter
 )
 
 @Serializable

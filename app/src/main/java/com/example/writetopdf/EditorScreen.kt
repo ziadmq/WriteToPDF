@@ -24,7 +24,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.FormatSize
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -57,6 +56,7 @@ import com.itextpdf.layout.element.Image
 import com.itextpdf.layout.element.Paragraph
 import com.itextpdf.layout.properties.AreaBreakType
 import com.itextpdf.layout.properties.TextAlignment
+import com.itextpdf.layout.properties.VerticalAlignment
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import kotlinx.serialization.encodeToString
@@ -64,6 +64,9 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+
+// ✅ 1. Define Transparent Highlighter Color
+val TransparentYellow = Color(0xFFFFFF00).copy(alpha = 0.5f)
 
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
@@ -136,14 +139,12 @@ fun EditorScreen(
                                 unfocusedTextColor = GalaxyTextPrimary
                             ),
                             placeholder = {
-                                Text(
-                                    "Untitled",
-                                    color = GalaxyTextSecondary
-                                )
+                                Text("Untitled", color = GalaxyTextSecondary)
                             }
                         )
+                        // Show "Page 1/2" in Top Bar as well
                         Text(
-                            "Page ${pagerState.currentPage + 1} of ${pageStates.size}",
+                            "${pagerState.currentPage + 1} / ${pageStates.size}",
                             fontSize = 12.sp,
                             color = GalaxyTextSecondary
                         )
@@ -152,7 +153,7 @@ fun EditorScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         handleSave(document.id, titleState.value, pageStates, viewModel)
-                        navigateToHome()
+                        navigateToHome() // ✅ Return to Home on Back
                     }) {
                         Icon(
                             Icons.Default.ArrowBack,
@@ -172,6 +173,7 @@ fun EditorScreen(
                     IconButton(onClick = {
                         handleSave(document.id, titleState.value, pageStates, viewModel)
                         Toast.makeText(context, "Saved!", Toast.LENGTH_SHORT).show()
+                        navigateToHome() // ✅ 2. Return to Home on Save
                     }) {
                         Icon(
                             Icons.Default.Save,
@@ -234,25 +236,32 @@ fun EditorScreen(
                         isActive = currentRichTextState.currentSpanStyle.fontWeight == FontWeight.Bold,
                         icon = Icons.Default.FormatBold
                     ) {
-                        currentRichTextState.toggleSpanStyle(
-                            SpanStyle(fontWeight = FontWeight.Bold)
-                        )
+                        currentRichTextState.toggleSpanStyle(SpanStyle(fontWeight = FontWeight.Bold))
                     }
                     ToolBtn(
                         isActive = currentRichTextState.currentSpanStyle.fontStyle == FontStyle.Italic,
                         icon = Icons.Default.FormatItalic
                     ) {
-                        currentRichTextState.toggleSpanStyle(
-                            SpanStyle(fontStyle = FontStyle.Italic)
-                        )
+                        currentRichTextState.toggleSpanStyle(SpanStyle(fontStyle = FontStyle.Italic))
                     }
                     ToolBtn(
                         isActive = currentRichTextState.currentSpanStyle.textDecoration == TextDecoration.Underline,
                         icon = Icons.Default.FormatUnderlined
                     ) {
-                        currentRichTextState.toggleSpanStyle(
-                            SpanStyle(textDecoration = TextDecoration.Underline)
-                        )
+                        currentRichTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
+                    }
+
+                    // ✅ 3. Highlighter Button (Transparent)
+                    val isHighlighted = currentRichTextState.currentSpanStyle.background == TransparentYellow
+                    ToolBtn(
+                        isActive = isHighlighted,
+                        icon = Icons.Default.FormatColorFill
+                    ) {
+                        if (isHighlighted) {
+                            currentRichTextState.toggleSpanStyle(SpanStyle(background = Color.Unspecified))
+                        } else {
+                            currentRichTextState.toggleSpanStyle(SpanStyle(background = TransparentYellow))
+                        }
                     }
 
                     Divider(
@@ -319,28 +328,39 @@ fun EditorScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentAlignment = Alignment.TopCenter
                 ) {
+                    // Full White Page
                     Surface(
                         modifier = Modifier
                             .padding(16.dp)
                             .fillMaxWidth()
-                            .aspectRatio(0.707f)
-                            .shadow(10.dp)
-                            .verticalScroll(rememberScrollState()),
+                            .aspectRatio(0.707f) // A4 Ratio
+                            .shadow(10.dp),
                         color = Color.White,
                         shape = RoundedCornerShape(2.dp)
                     ) {
-                        RichTextEditor(
-                            state = pageStates[pageIndex],
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .padding(24.dp),
-                            placeholder = {
-                                Text(
-                                    "Page ${pageIndex + 1}...",
-                                    color = Color.Gray
-                                )
-                            }
-                        )
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            RichTextEditor(
+                                state = pageStates[pageIndex],
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .padding(24.dp)
+                                    .padding(bottom = 30.dp) // Add padding so text doesn't overlap number
+                                    .verticalScroll(rememberScrollState()),
+                                placeholder = {
+                                    Text("Page ${pageIndex + 1}...", color = Color.Gray)
+                                }
+                            )
+
+                            // ✅ 4. Page Number 1/2 at Bottom
+                            Text(
+                                text = "${pageIndex + 1} / ${pageStates.size}",
+                                color = Color.LightGray,
+                                fontSize = 12.sp,
+                                modifier = Modifier
+                                    .align(Alignment.BottomCenter)
+                                    .padding(bottom = 12.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -348,7 +368,7 @@ fun EditorScreen(
     }
 }
 
-// ---------- SAVE DOCUMENT (مع حماية من الكراش) ----------
+// ---------- SAVE LOGIC (Handles Background Color) ----------
 
 fun handleSave(
     docId: Int,
@@ -359,14 +379,9 @@ fun handleSave(
     val json = Json { ignoreUnknownKeys = true }
 
     val pagesHtml = pageStates.map { state ->
-        try {
-            state.toHtml()
-        } catch (e: Exception) {
-            ""
-        }
+        try { state.toHtml() } catch (e: Exception) { "" }
     }
 
-    // لو صار أي مشاكل في الفورماتينغ ما نخلي التطبيق يكرش
     val formattingJsonList = pageStates.map { state ->
         try {
             val data = FormattingData(
@@ -377,12 +392,10 @@ fun handleSave(
                         fontWeight = if (style.item.fontWeight == FontWeight.Bold) "Bold" else null,
                         fontStyle = if (style.item.fontStyle == FontStyle.Italic) "Italic" else null,
                         textDecoration = if (style.item.textDecoration == TextDecoration.Underline) "Underline" else null,
-                        fontSize = if (style.item.fontSize != TextUnit.Unspecified)
-                            style.item.fontSize.value
-                        else null,
-                        color = style.item.color
-                            .takeIf { it != Color.Unspecified }
-                            ?.toArgb()
+                        fontSize = if (style.item.fontSize != TextUnit.Unspecified) style.item.fontSize.value else null,
+                        color = style.item.color.takeIf { it != Color.Unspecified }?.toArgb(),
+                        // Save background color
+                        background = style.item.background.takeIf { it != Color.Unspecified }?.toArgb()
                     )
                 },
                 paragraphStyles = state.annotatedString.paragraphStyles.map { style ->
@@ -394,9 +407,7 @@ fun handleSave(
                 }
             )
             json.encodeToString(data)
-        } catch (e: Exception) {
-            ""
-        }
+        } catch (e: Exception) { "" }
     }
 
     val newDoc = Document(
@@ -407,31 +418,10 @@ fun handleSave(
         lastUpdated = java.time.LocalDate.now().toString()
     )
 
-    if (docId == 0) {
-        viewModel.addDocument(newDoc)
-    } else {
-        viewModel.updateDocument(newDoc)
-    }
+    if (docId == 0) viewModel.addDocument(newDoc) else viewModel.updateDocument(newDoc)
 }
 
-// ---------- COPY IMAGE TO INTERNAL STORAGE ----------
-
-fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
-    return try {
-        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
-        val fileName = "img_${System.currentTimeMillis()}.jpg"
-        val file = File(context.filesDir, fileName)
-        val outputStream = FileOutputStream(file)
-
-        inputStream.copyTo(outputStream)
-        inputStream.close()
-        outputStream.close()
-
-        file.absolutePath
-    } catch (_: Exception) {
-        null
-    }
-}
+// ---------- EXPORT TO PDF ----------
 
 fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextState>) {
     try {
@@ -445,113 +435,79 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
                     put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
                     put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
                 }
-                val uri = context.contentResolver.insert(
-                    MediaStore.Files.getContentUri("external"),
-                    cv
-                )
+                val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), cv)
                 uri?.let { context.contentResolver.openOutputStream(it) }
             } else {
-                val file = File(
-                    Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS),
-                    outputName
-                )
+                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), outputName)
                 FileOutputStream(file)
             }
 
-        if (outputStream == null) {
-            Toast.makeText(context, "Failed to open file", Toast.LENGTH_LONG).show()
-            return
-        }
+        if (outputStream == null) return
 
         val writer = PdfWriter(outputStream)
         val pdf = PdfDocument(writer)
         val doc = com.itextpdf.layout.Document(pdf)
 
-        // ---------- FOR EACH PAGE ----------
         pageStates.forEachIndexed { pageIndex, state ->
-
             if (pageIndex > 0) doc.add(AreaBreak(AreaBreakType.NEXT_PAGE))
 
             val annotated = state.annotatedString
             val fullText = annotated.text
             val spans = annotated.spanStyles
 
-            // نستخدم نفس نظام [IMAGE:path] اللي انت عامله
             val imageTagRegex = "\\[IMAGE:([^]]+)]".toRegex()
             val parts = imageTagRegex.split(fullText)
             val images = imageTagRegex.findAll(fullText).toList()
 
-            var pointer = 0 // مؤشر داخل النص الأصلي (مع الصور)
+            var pointer = 0
 
             parts.forEachIndexed { index, part ->
-
-                // ----- نص عادي -----
                 if (part.isNotEmpty()) {
                     val paragraph = Paragraph()
-
                     var i = 0
                     while (i < part.length) {
                         val ch = part[i]
                         val globalIndex = pointer + i
-
-                        // كل الـ spans اللي فوق هذا الحرف
-                        val overlappingSpans = spans.filter { span ->
-                            globalIndex >= span.start && globalIndex < span.end
-                        }
+                        val overlappingSpans = spans.filter { globalIndex >= it.start && globalIndex < it.end }
 
                         val textObj = com.itextpdf.layout.element.Text(ch.toString())
 
                         if (overlappingSpans.isNotEmpty()) {
-                            // Bold / Italic / Underline
-                            if (overlappingSpans.any { it.item.fontWeight == FontWeight.Bold }) {
-                                textObj.setBold()
-                            }
-                            if (overlappingSpans.any { it.item.fontStyle == FontStyle.Italic }) {
-                                textObj.setItalic()
-                            }
-                            if (overlappingSpans.any {
-                                    it.item.textDecoration == TextDecoration.Underline
-                                }) {
-                                textObj.setUnderline()
-                            }
+                            if (overlappingSpans.any { it.item.fontWeight == FontWeight.Bold }) textObj.setBold()
+                            if (overlappingSpans.any { it.item.fontStyle == FontStyle.Italic }) textObj.setItalic()
+                            if (overlappingSpans.any { it.item.textDecoration == TextDecoration.Underline }) textObj.setUnderline()
 
-                            // Font size (آخر واحد)
-                            val sizeSpan = overlappingSpans.lastOrNull {
-                                it.item.fontSize != TextUnit.Unspecified
-                            }
-                            sizeSpan?.let {
-                                textObj.setFontSize(it.item.fontSize.value)
-                            }
+                            overlappingSpans.lastOrNull { it.item.fontSize != TextUnit.Unspecified }
+                                ?.let { textObj.setFontSize(it.item.fontSize.value) }
 
-                            // Color (آخر span فيه لون محدد)
-                            val colorSpan = overlappingSpans.lastOrNull {
-                                it.item.color != Color.Unspecified
-                            }
-                            colorSpan?.let {
-                                val c = it.item.color.toArgb()
-                                textObj.setFontColor(
-                                    DeviceRgb(
-                                        android.graphics.Color.red(c),
-                                        android.graphics.Color.green(c),
-                                        android.graphics.Color.blue(c)
-                                    )
-                                )
-                            }
+                            overlappingSpans.lastOrNull { it.item.color != Color.Unspecified }
+                                ?.let {
+                                    val c = it.item.color.toArgb()
+                                    textObj.setFontColor(DeviceRgb(android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)))
+                                }
+
+                            // Apply Highlighter in PDF (Mapping transparent yellow to solid yellow for PDF compatibility)
+                            overlappingSpans.lastOrNull { it.item.background != Color.Unspecified }
+                                ?.let {
+                                    val c = it.item.background.toArgb()
+                                    // If transparent yellow, make it solid yellow in PDF so it's visible
+                                    if (c == TransparentYellow.toArgb()) {
+                                        textObj.setBackgroundColor(DeviceRgb(255, 255, 0)) // Solid Yellow
+                                    } else {
+                                        textObj.setBackgroundColor(DeviceRgb(android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)))
+                                    }
+                                }
                         }
-
                         paragraph.add(textObj)
                         i++
                     }
-
                     paragraph.setTextAlignment(TextAlignment.LEFT)
                     doc.add(paragraph)
                 }
 
-                // ----- صورة لو فيه -----
                 if (index < images.size) {
                     val match = images[index]
                     val imgPath = match.groupValues[1]
-
                     try {
                         val file = File(imgPath)
                         if (file.exists()) {
@@ -560,21 +516,20 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
                             pdfImg.setAutoScale(true)
                             doc.add(pdfImg)
                         }
-                    } catch (_: Exception) {
-                    }
-
-                    // نعدي على النص + وسُم الصورة الأصلي
+                    } catch (_: Exception) {}
                     pointer += part.length + match.value.length
                 } else {
-                    // آخر جزء بدون صورة بعده
                     pointer += part.length
                 }
             }
+
+            // ✅ PDF Page Number (Centered Bottom)
+            val pageNumText = "${pageIndex + 1} / ${pageStates.size}"
+            doc.showTextAligned(Paragraph(pageNumText), 297.5f, 20f, pageIndex + 1, TextAlignment.CENTER, VerticalAlignment.BOTTOM, 0f)
         }
 
         doc.close()
         outputStream.close()
-
         Toast.makeText(context, "Saved: $outputName", Toast.LENGTH_LONG).show()
 
     } catch (e: Exception) {
@@ -583,9 +538,7 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
     }
 }
 
-
-
-// ---------- RESTORE FORMAT ----------
+// ---------- RESTORE FORMATTING ----------
 
 fun restoreFormatting(state: RichTextState, jsonString: String) {
     try {
@@ -604,25 +557,37 @@ fun restoreFormatting(state: RichTextState, jsonString: String) {
 
         data.spanStyles.forEach { s ->
             val color = if (s.color != null) Color(s.color) else Color.Unspecified
+            // Restore background
+            val background = if (s.background != null) Color(s.background) else Color.Unspecified
+
             val style = SpanStyle(
                 fontWeight = if (s.fontWeight == "Bold") FontWeight.Bold else null,
                 fontStyle = if (s.fontStyle == "Italic") FontStyle.Italic else null,
                 textDecoration = if (s.textDecoration == "Underline") TextDecoration.Underline else null,
                 fontSize = if (s.fontSize != null) s.fontSize.sp else TextUnit.Unspecified,
-                color = color
+                color = color,
+                background = background
             )
-            state.addSpanStyle(
-                style,
-                androidx.compose.ui.text.TextRange(s.start, s.end)
-            )
+            state.addSpanStyle(style, androidx.compose.ui.text.TextRange(s.start, s.end))
         }
-    } catch (_: Exception) {
-        // تجاهل لو في فورمات قديم / خربان
-    }
+    } catch (_: Exception) {}
 }
 
-// ---------- UI HELPERS ----------
+// Helper: Copy Image to internal storage
+fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
+    return try {
+        val inputStream = context.contentResolver.openInputStream(uri) ?: return null
+        val fileName = "img_${System.currentTimeMillis()}.jpg"
+        val file = File(context.filesDir, fileName)
+        val outputStream = FileOutputStream(file)
+        inputStream.copyTo(outputStream)
+        inputStream.close()
+        outputStream.close()
+        file.absolutePath
+    } catch (_: Exception) { null }
+}
 
+// UI Helper for Buttons
 @Composable
 fun ToolBtn(
     isActive: Boolean,
@@ -646,33 +611,14 @@ fun ToolBtn(
 
 @Composable
 fun ColorPickerRow(onColorSelected: (Color) -> Unit) {
-    val colors = listOf(
-        Color.Black,
-        Color.Red,
-        GalaxyAccentPurple,
-        GalaxyAccentTeal,
-        Color(0xFFFF9800),
-        Color.Green,
-        Color.Blue,
-        Color.Gray
-    )
-
+    val colors = listOf(Color.Black, Color.Red, GalaxyAccentPurple, GalaxyAccentTeal, Color(0xFFFF9800), Color.Green, Color.Blue, Color.Gray)
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(GalaxySurface)
-            .padding(8.dp)
-            .horizontalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxWidth().background(GalaxySurface).padding(8.dp).horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         colors.forEach { color ->
             Box(
-                modifier = Modifier
-                    .size(32.dp)
-                    .clip(CircleShape)
-                    .background(color)
-                    .border(1.dp, Color.White, CircleShape)
-                    .clickable { onColorSelected(color) }
+                modifier = Modifier.size(32.dp).clip(CircleShape).background(color).border(1.dp, Color.White, CircleShape).clickable { onColorSelected(color) }
             )
         }
     }
@@ -681,33 +627,18 @@ fun ColorPickerRow(onColorSelected: (Color) -> Unit) {
 @Composable
 fun SizePickerRow(onSizeSelected: (Float) -> Unit) {
     val sizes = listOf(12f, 14f, 16f, 18f, 20f, 24f, 30f, 36f, 48f)
-
     Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(GalaxySurface)
-            .padding(8.dp)
-            .horizontalScroll(rememberScrollState()),
+        modifier = Modifier.fillMaxWidth().background(GalaxySurface).padding(8.dp).horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         sizes.forEach { size ->
             Box(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(GalaxyBackground)
-                    .border(
-                        1.dp,
-                        GalaxyTextSecondary.copy(alpha = 0.3f),
-                        RoundedCornerShape(8.dp)
-                    )
+                modifier = Modifier.clip(RoundedCornerShape(8.dp)).background(GalaxyBackground)
+                    .border(1.dp, GalaxyTextSecondary.copy(alpha = 0.3f), RoundedCornerShape(8.dp))
                     .clickable { onSizeSelected(size) }
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                Text(
-                    "${size.toInt()}",
-                    fontSize = 14.sp,
-                    color = GalaxyTextPrimary
-                )
+                Text("${size.toInt()}", fontSize = 14.sp, color = GalaxyTextPrimary)
             }
         }
     }
