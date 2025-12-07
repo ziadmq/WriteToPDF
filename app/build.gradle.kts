@@ -14,8 +14,8 @@ android {
         applicationId = "com.mobix.editorpdf"
         minSdk = 24
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1"
+        versionCode = 5
+        versionName = "1.4"
     }
 
     buildTypes {
@@ -50,6 +50,7 @@ dependencies {
     implementation("androidx.compose.material:material-icons-extended:1.5.4")
     // iText Core
     implementation("com.itextpdf:itext7-core:7.2.3")
+    implementation("androidx.activity:activity-ktx:1.9.0")
 
     // Arabic Support (Typography / pdfCalligraph)
     // This will now work because we added the repository in Step 1

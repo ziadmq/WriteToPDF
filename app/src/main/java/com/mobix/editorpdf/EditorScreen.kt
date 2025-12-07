@@ -8,6 +8,7 @@ import android.os.Environment
 import android.provider.MediaStore
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -101,10 +102,13 @@ fun EditorScreen(
 
     var showColorPicker by remember { mutableStateOf(false) }
     var showSizePicker by remember { mutableStateOf(false) }
+
+    // ✅ FIXED: Restored isSaveDialogOpen variable
     val isSaveDialogOpen = remember { mutableStateOf(false) }
 
+    // ✅ FIXED: Uses Photo Picker (No Permissions Needed)
     val imagePickerLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.GetContent()
+        contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let {
             val internalPath = copyImageToInternalStorage(context, it)
@@ -146,7 +150,7 @@ fun EditorScreen(
                 navigationIcon = {
                     IconButton(onClick = {
                         handleSave(document.id, titleState.value, pageStates, viewModel)
-                        navigateToHome() // ✅ Return to Home on Back
+                        navigateToHome()
                     }) {
                         Icon(
                             Icons.Default.ArrowBack,
@@ -166,7 +170,7 @@ fun EditorScreen(
                     IconButton(onClick = {
                         handleSave(document.id, titleState.value, pageStates, viewModel)
                         Toast.makeText(context, "Saved!", Toast.LENGTH_SHORT).show()
-                        navigateToHome() // ✅ 2. Return to Home on Save
+                        navigateToHome()
                     }) {
                         Icon(
                             Icons.Default.Save,
@@ -210,7 +214,13 @@ fun EditorScreen(
                             tint = GalaxyAccentTeal
                         )
                     }
-                    IconButton(onClick = { imagePickerLauncher.launch("image/*") }) {
+
+                    // ✅ FIXED: Updated button to launch Photo Picker correctly
+                    IconButton(onClick = {
+                        imagePickerLauncher.launch(
+                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                        )
+                    }) {
                         Icon(
                             Icons.Default.Image,
                             contentDescription = "Add Image",
@@ -244,7 +254,6 @@ fun EditorScreen(
                         currentRichTextState.toggleSpanStyle(SpanStyle(textDecoration = TextDecoration.Underline))
                     }
 
-                    // ✅ 3. Highlighter Button (Transparent)
                     val isHighlighted = currentRichTextState.currentSpanStyle.background == TransparentYellow
                     ToolBtn(
                         isActive = isHighlighted,
@@ -313,7 +322,7 @@ fun EditorScreen(
                 .fillMaxSize()
                 .background(GalaxyBackground)
         ) {
-            Column(){
+            Column {
                 HorizontalPager(
                     state = pagerState,
                     modifier = Modifier.weight(6f)
@@ -322,7 +331,6 @@ fun EditorScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.TopCenter
                     ) {
-                        // Full White Page
                         Surface(
                             modifier = Modifier
                                 .padding(8.dp)
@@ -338,7 +346,7 @@ fun EditorScreen(
                                     modifier = Modifier
                                         .fillMaxSize()
                                         .padding(6.dp).background(Color.White)
-                                        .padding(bottom = 30.dp) // Add padding so text doesn't overlap number
+                                        .padding(bottom = 30.dp)
                                         .verticalScroll(rememberScrollState()),
                                     placeholder = {
                                         Text("Page ${pageIndex + 1}...", color = Color.Gray)
@@ -346,7 +354,7 @@ fun EditorScreen(
                                 )
 
                                 Text(
-                                    text = "${pageIndex +1}",
+                                    text = "${pageIndex + 1}",
                                     color = Color.LightGray,
                                     fontSize = 12.sp,
                                     modifier = Modifier
@@ -354,12 +362,9 @@ fun EditorScreen(
                                         .padding(bottom = 12.dp)
                                 )
                             }
-
-                            // Show "Page 1/2" in Top Bar as well
-
                         }
                     }
-                    Column(Modifier.fillMaxWidth().background(Color.White)){
+                    Column(Modifier.fillMaxWidth().background(Color.White)) {
                         Text(
                             "${pagerState.currentPage + 1} / ${pageStates.size}",
                             fontSize = 12.sp,
@@ -367,9 +372,11 @@ fun EditorScreen(
                         )
                     }
                 }
-                Column(Modifier.fillMaxWidth().weight(2f),
+                Column(
+                    Modifier.fillMaxWidth().weight(2f),
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center){
+                    verticalArrangement = Arrangement.Center
+                ) {
                     Text(
                         "${pagerState.currentPage + 1} / ${pageStates.size}",
                         fontSize = 14.sp,
@@ -402,13 +409,11 @@ fun handleSave(
                     SpanStyleData(
                         start = style.start,
                         end = style.end,
-                        // ✅ FIXED: Robust Bold check (weight >= 700) instead of strict equality
                         fontWeight = if (style.item.fontWeight != null && style.item.fontWeight!!.weight >= 700) "Bold" else null,
                         fontStyle = if (style.item.fontStyle == FontStyle.Italic) "Italic" else null,
                         textDecoration = if (style.item.textDecoration == TextDecoration.Underline) "Underline" else null,
                         fontSize = if (style.item.fontSize != TextUnit.Unspecified) style.item.fontSize.value else null,
                         color = style.item.color.takeIf { it != Color.Unspecified }?.toArgb(),
-                        // Save background color
                         background = style.item.background.takeIf { it != Color.Unspecified }?.toArgb()
                     )
                 },
@@ -487,7 +492,6 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
                         val textObj = com.itextpdf.layout.element.Text(ch.toString())
 
                         if (overlappingSpans.isNotEmpty()) {
-                            // ✅ FIXED: Robust Bold check for PDF export
                             if (overlappingSpans.any { it.item.fontWeight != null && it.item.fontWeight!!.weight >= 700 }) textObj.setBold()
                             if (overlappingSpans.any { it.item.fontStyle == FontStyle.Italic }) textObj.setItalic()
                             if (overlappingSpans.any { it.item.textDecoration == TextDecoration.Underline }) textObj.setUnderline()
@@ -501,13 +505,11 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
                                     textObj.setFontColor(DeviceRgb(android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)))
                                 }
 
-                            // Apply Highlighter in PDF (Mapping transparent yellow to solid yellow for PDF compatibility)
                             overlappingSpans.lastOrNull { it.item.background != Color.Unspecified }
                                 ?.let {
                                     val c = it.item.background.toArgb()
-                                    // If transparent yellow, make it solid yellow in PDF so it's visible
                                     if (c == TransparentYellow.toArgb()) {
-                                        textObj.setBackgroundColor(DeviceRgb(255, 255, 0)) // Solid Yellow
+                                        textObj.setBackgroundColor(DeviceRgb(255, 255, 0))
                                     } else {
                                         textObj.setBackgroundColor(DeviceRgb(android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)))
                                     }
@@ -538,7 +540,6 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
                 }
             }
 
-            // ✅ PDF Page Number (Centered Bottom)
             val pageNumText = "${pageIndex + 1} / ${pageStates.size}"
             doc.showTextAligned(Paragraph(pageNumText), 297.5f, 20f, pageIndex + 1, TextAlignment.CENTER, VerticalAlignment.BOTTOM, 0f)
         }
@@ -572,7 +573,6 @@ fun restoreFormatting(state: RichTextState, jsonString: String) {
 
         data.spanStyles.forEach { s ->
             val color = if (s.color != null) Color(s.color) else Color.Unspecified
-            // Restore background
             val background = if (s.background != null) Color(s.background) else Color.Unspecified
 
             val style = SpanStyle(
