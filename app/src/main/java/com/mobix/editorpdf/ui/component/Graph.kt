@@ -1,4 +1,4 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.component
 
 import android.content.Context
 import androidx.room.Room

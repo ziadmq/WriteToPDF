@@ -1,4 +1,4 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.view
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -28,9 +28,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.mobix.editorpdf.ui.viwmodel.DocumentViewModel
 import com.mobix.editorpdf.domain.models.Document
 import com.mobix.editorpdf.ui.theme.*
 import java.time.LocalDate
@@ -140,7 +142,7 @@ fun HomeScreen(
                     Text(
                         if(searchQuery.isEmpty()) "Your galaxy is empty.\nTap + to start." else "No results found.",
                         color = GalaxyTextSecondary,
-                        textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                        textAlign = TextAlign.Center
                     )
                 }
             } else {

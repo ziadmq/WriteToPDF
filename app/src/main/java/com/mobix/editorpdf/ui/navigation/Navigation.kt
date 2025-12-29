@@ -1,4 +1,4 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.navigation
 
 import android.os.Build
 import androidx.annotation.RequiresApi
@@ -8,7 +8,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.mobix.editorpdf.ui.viwmodel.DocumentViewModel
+import com.mobix.editorpdf.ui.view.EditorScreen
 import com.mobix.editorpdf.domain.models.Document
+import com.mobix.editorpdf.ui.view.HomeScreen
+import com.mobix.editorpdf.ui.view.SplashScreen
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

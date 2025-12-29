@@ -1,4 +1,4 @@
-package com.mobix.editorpdf.view.component
+package com.mobix.editorpdf.ui.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable

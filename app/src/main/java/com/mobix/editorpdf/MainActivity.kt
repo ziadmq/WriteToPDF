@@ -6,7 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
-import com.mobix.editorpdf.Navigation
+import com.mobix.editorpdf.ui.navigation.Navigation
 import com.mobix.editorpdf.ui.theme.DocumentEditorTheme
 import com.mobix.editorpdf.R
 

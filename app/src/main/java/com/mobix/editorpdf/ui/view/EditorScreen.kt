@@ -1,4 +1,4 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.view
 
 import android.content.ContentValues
 import android.content.Context
@@ -33,9 +33,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.ParagraphStyle
 import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -55,9 +57,11 @@ import com.itextpdf.kernel.pdf.PdfWriter
 import com.itextpdf.layout.element.AreaBreak
 import com.itextpdf.layout.element.Image
 import com.itextpdf.layout.element.Paragraph
+import com.itextpdf.layout.element.Text
 import com.itextpdf.layout.properties.AreaBreakType
 import com.itextpdf.layout.properties.TextAlignment
 import com.itextpdf.layout.properties.VerticalAlignment
+import com.mobix.editorpdf.ui.viwmodel.DocumentViewModel
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
 import kotlinx.serialization.encodeToString
@@ -65,6 +69,7 @@ import kotlinx.serialization.json.Json
 import java.io.File
 import java.io.FileOutputStream
 import java.io.OutputStream
+import java.time.LocalDate
 
 val TransparentYellow = Color(0xFFFFFF00).copy(alpha = 0.5f)
 
@@ -434,7 +439,7 @@ fun handleSave(
         title = title.ifBlank { "Untitled" },
         pages = pagesHtml,
         formatting = formattingJsonList,
-        lastUpdated = java.time.LocalDate.now().toString()
+        lastUpdated = LocalDate.now().toString()
     )
 
     if (docId == 0) viewModel.addDocument(newDoc) else viewModel.updateDocument(newDoc)
@@ -489,7 +494,7 @@ fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextSta
                         val globalIndex = pointer + i
                         val overlappingSpans = spans.filter { globalIndex >= it.start && globalIndex < it.end }
 
-                        val textObj = com.itextpdf.layout.element.Text(ch.toString())
+                        val textObj = Text(ch.toString())
 
                         if (overlappingSpans.isNotEmpty()) {
                             if (overlappingSpans.any { it.item.fontWeight != null && it.item.fontWeight!!.weight >= 700 }) textObj.setBold()
@@ -583,7 +588,7 @@ fun restoreFormatting(state: RichTextState, jsonString: String) {
                 color = color,
                 background = background
             )
-            state.addSpanStyle(style, androidx.compose.ui.text.TextRange(s.start, s.end))
+            state.addSpanStyle(style, TextRange(s.start, s.end))
         }
     } catch (_: Exception) {}
 }
@@ -606,7 +611,7 @@ fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
 @Composable
 fun ToolBtn(
     isActive: Boolean,
-    icon: androidx.compose.ui.graphics.vector.ImageVector,
+    icon: ImageVector,
     onClick: () -> Unit
 ) {
     IconButton(

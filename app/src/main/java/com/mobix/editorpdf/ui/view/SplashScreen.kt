@@ -1,4 +1,4 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.view
 
 import android.view.animation.OvershootInterpolator
 import androidx.compose.animation.core.Animatable
@@ -17,12 +17,14 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
+import com.mobix.editorpdf.R
 import com.mobix.editorpdf.ui.theme.GalaxyAccentPurple
 import com.mobix.editorpdf.ui.theme.GalaxyAccentTeal
 import kotlinx.coroutines.delay
 
 @Composable
-fun SplashScreen(navController: androidx.navigation.NavController) {
+fun SplashScreen(navController: NavController) {
     val scale = remember { Animatable(0f) }
 
     // Typing text state

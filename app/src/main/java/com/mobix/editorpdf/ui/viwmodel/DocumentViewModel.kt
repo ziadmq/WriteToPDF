@@ -1,9 +1,10 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.viwmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.mobix.editorpdf.data.repository.DocumentRepository
 import com.mobix.editorpdf.domain.models.Document
+import com.mobix.editorpdf.ui.component.Graph
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.launch
 

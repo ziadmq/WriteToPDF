@@ -1,4 +1,4 @@
-package com.mobix.editorpdf
+package com.mobix.editorpdf.ui.view
 
 import android.annotation.SuppressLint
 import androidx.compose.ui.Modifier
