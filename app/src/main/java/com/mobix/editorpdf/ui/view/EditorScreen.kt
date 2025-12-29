@@ -61,6 +61,7 @@ import com.itextpdf.layout.element.Text
 import com.itextpdf.layout.properties.AreaBreakType
 import com.itextpdf.layout.properties.TextAlignment
 import com.itextpdf.layout.properties.VerticalAlignment
+import com.mobix.editorpdf.ui.component.exportToPdf
 import com.mobix.editorpdf.ui.viwmodel.DocumentViewModel
 import com.mohamedrejeb.richeditor.model.RichTextState
 import com.mohamedrejeb.richeditor.ui.material3.RichTextEditor
@@ -108,10 +109,8 @@ fun EditorScreen(
     var showColorPicker by remember { mutableStateOf(false) }
     var showSizePicker by remember { mutableStateOf(false) }
 
-    // ✅ FIXED: Restored isSaveDialogOpen variable
-    val isSaveDialogOpen = remember { mutableStateOf(false) }
+    // Removed isSaveDialogOpen state to skip the confirmation box
 
-    // ✅ FIXED: Uses Photo Picker (No Permissions Needed)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -165,7 +164,10 @@ fun EditorScreen(
                     }
                 },
                 actions = {
-                    IconButton(onClick = { isSaveDialogOpen.value = true }) {
+                    // UPDATED: Directly calls exportToPdf on click
+                    IconButton(onClick = {
+                        exportToPdf(context, titleState.value, pageStates)
+                    }) {
                         Icon(
                             Icons.Default.Download,
                             contentDescription = "Export PDF",
@@ -220,7 +222,6 @@ fun EditorScreen(
                         )
                     }
 
-                    // ✅ FIXED: Updated button to launch Photo Picker correctly
                     IconButton(onClick = {
                         imagePickerLauncher.launch(
                             PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
@@ -302,24 +303,7 @@ fun EditorScreen(
             }
         }
     ) { paddingValues ->
-        if (isSaveDialogOpen.value) {
-            AlertDialog(
-                onDismissRequest = { isSaveDialogOpen.value = false },
-                title = { Text("Export PDF") },
-                text = { Text("Save to Downloads?") },
-                confirmButton = {
-                    Button(onClick = {
-                        exportToPdf(context, titleState.value, pageStates)
-                        isSaveDialogOpen.value = false
-                    }) { Text("Export") }
-                },
-                dismissButton = {
-                    TextButton(onClick = { isSaveDialogOpen.value = false }) {
-                        Text("Cancel")
-                    }
-                }
-            )
-        }
+        // AlertDialog code block removed to save directly to device
 
         Box(
             modifier = Modifier
@@ -389,7 +373,6 @@ fun EditorScreen(
                     )
                 }
             }
-
         }
     }
 }
@@ -447,117 +430,7 @@ fun handleSave(
 
 // ---------- EXPORT TO PDF ----------
 
-fun exportToPdf(context: Context, fileName: String, pageStates: List<RichTextState>) {
-    try {
-        val finalName = if (fileName.isBlank()) "Document" else fileName
-        val outputName = "$finalName.pdf"
 
-        val outputStream: OutputStream? =
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                val cv = ContentValues().apply {
-                    put(MediaStore.MediaColumns.DISPLAY_NAME, outputName)
-                    put(MediaStore.MediaColumns.MIME_TYPE, "application/pdf")
-                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_DOWNLOADS)
-                }
-                val uri = context.contentResolver.insert(MediaStore.Files.getContentUri("external"), cv)
-                uri?.let { context.contentResolver.openOutputStream(it) }
-            } else {
-                val file = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS), outputName)
-                FileOutputStream(file)
-            }
-
-        if (outputStream == null) return
-
-        val writer = PdfWriter(outputStream)
-        val pdf = PdfDocument(writer)
-        val doc = com.itextpdf.layout.Document(pdf)
-
-        pageStates.forEachIndexed { pageIndex, state ->
-            if (pageIndex > 0) doc.add(AreaBreak(AreaBreakType.NEXT_PAGE))
-
-            val annotated = state.annotatedString
-            val fullText = annotated.text
-            val spans = annotated.spanStyles
-
-            val imageTagRegex = "\\[IMAGE:([^]]+)]".toRegex()
-            val parts = imageTagRegex.split(fullText)
-            val images = imageTagRegex.findAll(fullText).toList()
-
-            var pointer = 0
-
-            parts.forEachIndexed { index, part ->
-                if (part.isNotEmpty()) {
-                    val paragraph = Paragraph()
-                    var i = 0
-                    while (i < part.length) {
-                        val ch = part[i]
-                        val globalIndex = pointer + i
-                        val overlappingSpans = spans.filter { globalIndex >= it.start && globalIndex < it.end }
-
-                        val textObj = Text(ch.toString())
-
-                        if (overlappingSpans.isNotEmpty()) {
-                            if (overlappingSpans.any { it.item.fontWeight != null && it.item.fontWeight!!.weight >= 700 }) textObj.setBold()
-                            if (overlappingSpans.any { it.item.fontStyle == FontStyle.Italic }) textObj.setItalic()
-                            if (overlappingSpans.any { it.item.textDecoration == TextDecoration.Underline }) textObj.setUnderline()
-
-                            overlappingSpans.lastOrNull { it.item.fontSize != TextUnit.Unspecified }
-                                ?.let { textObj.setFontSize(it.item.fontSize.value) }
-
-                            overlappingSpans.lastOrNull { it.item.color != Color.Unspecified }
-                                ?.let {
-                                    val c = it.item.color.toArgb()
-                                    textObj.setFontColor(DeviceRgb(android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)))
-                                }
-
-                            overlappingSpans.lastOrNull { it.item.background != Color.Unspecified }
-                                ?.let {
-                                    val c = it.item.background.toArgb()
-                                    if (c == TransparentYellow.toArgb()) {
-                                        textObj.setBackgroundColor(DeviceRgb(255, 255, 0))
-                                    } else {
-                                        textObj.setBackgroundColor(DeviceRgb(android.graphics.Color.red(c), android.graphics.Color.green(c), android.graphics.Color.blue(c)))
-                                    }
-                                }
-                        }
-                        paragraph.add(textObj)
-                        i++
-                    }
-                    paragraph.setTextAlignment(TextAlignment.LEFT)
-                    doc.add(paragraph)
-                }
-
-                if (index < images.size) {
-                    val match = images[index]
-                    val imgPath = match.groupValues[1]
-                    try {
-                        val file = File(imgPath)
-                        if (file.exists()) {
-                            val imgData = ImageDataFactory.create(file.absolutePath)
-                            val pdfImg = Image(imgData)
-                            pdfImg.setAutoScale(true)
-                            doc.add(pdfImg)
-                        }
-                    } catch (_: Exception) {}
-                    pointer += part.length + match.value.length
-                } else {
-                    pointer += part.length
-                }
-            }
-
-            val pageNumText = "${pageIndex + 1} / ${pageStates.size}"
-            doc.showTextAligned(Paragraph(pageNumText), 297.5f, 20f, pageIndex + 1, TextAlignment.CENTER, VerticalAlignment.BOTTOM, 0f)
-        }
-
-        doc.close()
-        outputStream.close()
-        Toast.makeText(context, "Saved: $outputName", Toast.LENGTH_LONG).show()
-
-    } catch (e: Exception) {
-        e.printStackTrace()
-        Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
-    }
-}
 
 // ---------- RESTORE FORMATTING ----------
 
@@ -593,7 +466,6 @@ fun restoreFormatting(state: RichTextState, jsonString: String) {
     } catch (_: Exception) {}
 }
 
-// Helper: Copy Image to internal storage
 fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
     return try {
         val inputStream = context.contentResolver.openInputStream(uri) ?: return null
@@ -607,7 +479,6 @@ fun copyImageToInternalStorage(context: Context, uri: Uri): String? {
     } catch (_: Exception) { null }
 }
 
-// UI Helper for Buttons
 @Composable
 fun ToolBtn(
     isActive: Boolean,

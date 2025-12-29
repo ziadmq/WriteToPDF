@@ -40,5 +40,4 @@ class DocumentViewModel(
     suspend fun getDocumentById(id: Int): Document {
         return documentRepository.getDocumentById(id)
     }
-
 }
