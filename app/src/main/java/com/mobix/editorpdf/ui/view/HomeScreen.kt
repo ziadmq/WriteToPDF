@@ -1,5 +1,6 @@
 package com.mobix.editorpdf.ui.view
 
+import android.app.Activity
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -27,6 +28,7 @@ import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.mobix.editorpdf.ui.viwmodel.DocumentViewModel
 import com.mobix.editorpdf.domain.models.Document
+import com.mobix.editorpdf.ui.component.AdManager
 import com.mobix.editorpdf.ui.theme.*
+import org.bouncycastle.crypto.params.Blake3Parameters.context
 import java.time.LocalDate
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -46,8 +50,8 @@ fun HomeScreen(
 ) {
     val allDocuments = viewModel.allDocuments.collectAsState(initial = emptyList()).value
     var searchQuery by remember { mutableStateOf("") }
+    val context = LocalContext.current
 
-    // ✅ FIXED: Filter Logic now checks 'doc.pages' instead of 'doc.content'
     val filteredDocuments = allDocuments.filter { doc ->
         doc.title.contains(searchQuery, ignoreCase = true) ||
                 doc.pages.any { page -> page.contains(searchQuery, ignoreCase = true) }
@@ -63,14 +67,18 @@ fun HomeScreen(
                     .clip(CircleShape)
                     .background(GalaxyGradient)
                     .clickable {
-                        // ✅ FIXED: Initialize new document with 'pages' list
-                        val document = Document(
-                            id = 0,
-                            title = "Untitled Design",
-                            pages = listOf(""),
-                            lastUpdated = LocalDate.now().toString()
-                        )
-                        navigateToEditor(document)
+                        val activity = context as? Activity
+                        if (activity != null) {
+                            AdManager.showInterstitial(activity) {
+                                val document = Document(
+                                    id = 0,
+                                    title = "Untitled Design",
+                                    pages = listOf(""),
+                                    lastUpdated = java.time.LocalDate.now().toString()
+                                )
+                                navigateToEditor(document)
+                            }
+                        }
                     },
                 contentAlignment = Alignment.Center
             ) {
@@ -226,11 +234,9 @@ fun GalaxyDocumentItem(
                 .background(GalaxySurface)
                 .border(1.dp, Color.White.copy(alpha = 0.1f), RoundedCornerShape(12.dp))
         ) {
-            // ✅ FIXED: Preview logic to use pages instead of content
             val firstPageContent = document.pages.firstOrNull() ?: ""
-            // Simple cleanup to remove HTML tags for the preview
             val cleanText = firstPageContent
-                .replace(Regex("<[^>]*>"), "") // Remove HTML
+                .replace(Regex("<[^>]*>"), "")
                 .replace(Regex("\\[IMAGE:.*?\\]"), "[Image]")
 
             Text(
