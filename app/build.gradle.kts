@@ -14,8 +14,8 @@ android {
         applicationId = "com.mobix.editorpdf"
         minSdk = 24
         targetSdk = 35
-        versionCode = 7
-        versionName = "1.6"
+        versionCode = 9
+        versionName = "1.8"
     }
 
     buildTypes {
@@ -52,6 +52,10 @@ dependencies {
     implementation("androidx.activity:activity-ktx:1.9.0")
     implementation("com.itextpdf:typography:3.0.0")
     implementation("com.google.android.gms:play-services-ads:23.0.0")
+    constraints {
+        implementation("androidx.fragment:fragment:1.8.9")
+        implementation("androidx.fragment:fragment-ktx:1.8.9")
+    }
     implementation(libs.richeditor.compose)
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
